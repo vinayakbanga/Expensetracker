@@ -1,0 +1,72 @@
+name: paisalog
+description: "PaisaLog — Private, local-first, iPhone-first SMS expense tracker"
+publish_to: 'none'
+
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+  flutter: '>=3.22.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # Routing
+  go_router: ^14.2.7
+
+  # Local persistence (plain SQLite for MVP; SQLCipher upgrade tracked in DECISIONS.md D-003)
+  drift: ^2.18.0
+  sqlite3_flutter_libs: ^0.5.24
+  path_provider: ^2.1.4
+  path: ^1.9.0
+
+  # Security
+  local_auth: ^2.3.0
+  flutter_secure_storage: ^9.2.2
+
+  # Utilities
+  intl: ^0.19.0
+  uuid: ^4.4.2
+
+  # Charts (Insights screen)
+  fl_chart: ^0.68.0
+
+  # Settings (non-sensitive prefs)
+  shared_preferences: ^2.3.2
+
+  # Import / Export
+  csv: ^6.0.0
+  file_picker: ^8.1.2
+  share_plus: ^10.0.2
+
+  # Icons
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Code generation
+  build_runner: ^2.4.11
+  drift_dev: ^2.18.0
+  riverpod_generator: ^2.4.0
+  riverpod_lint: ^2.3.10
+  custom_lint: ^0.6.4
+
+  # Linting
+  flutter_lints: ^4.0.0
+
+  # Testing
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/synthetic_data/
+

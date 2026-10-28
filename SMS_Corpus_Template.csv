@@ -1,0 +1,4 @@
+﻿case_id,bank_or_sender_family,redacted_sms_body,sms_received_at,expected_parse_status,expected_type,expected_amount_paise,expected_direction,expected_merchant_or_counterparty,expected_account_hint,expected_reference_id,expected_category,duplicate_of_case_id,notes
+T-001,BANK_A,Your A/c XX1234 is debited by INR 250.00 at MERCHANT_A. Ref REF_X.,2026-10-28 10:30,parsed,expense,25000,debit,MERCHANT_A,XX1234,REF_X,Shopping,,Synthetic example; replace with a redacted pattern relevant to your bank.
+T-002,BANK_A,Available balance in A/c XX1234 is INR 10000.00.,2026-10-28 10:31,ignored,,,,,XX1234,,,,Balance-only message; not a transaction.
+T-003,CARD_A,Payment of INR 8000 received towards credit card XX4321 from bank A/c XX1234.,2026-10-28 10:32,parsed,transfer,800000,credit,CREDIT_CARD_BILL,XX1234,,Transfer,,Synthetic example; should not create a second expense.

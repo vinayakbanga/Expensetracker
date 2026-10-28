@@ -1,0 +1,48 @@
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+*.g.dart
+*.freezed.dart
+
+# IDE
+.idea/
+.vscode/settings.json
+*.iml
+
+# iOS build outputs (not applicable on Windows dev machine)
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# Android (future phase)
+android/.gradle/
+android/local.properties
+
+# Sensitive / private — NEVER commit
+*.env
+secrets.dart
+*.key
+*.pem
+# SMS corpus with real data — only synthetic examples allowed
+real_sms_corpus.csv
+raw_bank_sms*.csv
+# Exported data files
+exports/
+*.export.csv
+# Database files
+*.db
+*.db-wal
+*.db-shm
+paisalog.db
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test output
+coverage/
+

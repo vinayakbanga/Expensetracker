@@ -1,0 +1,24 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - lib/generated/**
+    - build/**
+    - ios/**
+  errors:
+    invalid_annotation_target: ignore
+
+linter:
+  rules:
+    # Financial safety
+    avoid_double_and_int_checks: true
+    # Code quality
+    always_declare_return_types: true
+    prefer_const_constructors: true
+    prefer_const_declarations: true
+    avoid_print: true
+    use_super_parameters: true
+    prefer_single_quotes: true
+

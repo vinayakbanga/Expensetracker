@@ -1,0 +1,17 @@
+case_id,bank_or_sender_family,redacted_sms_body,sms_received_at,expected_parse_status,expected_type,expected_amount_paise,expected_direction,expected_merchant_or_counterparty,expected_account_hint,expected_reference_id,expected_category,duplicate_of_case_id,notes
+T-001,BANK_A,Your A/c XX1234 is debited by INR 250.00 at MERCHANT_A. Ref REF_X.,2026-10-28 10:30,parsed,expense,25000,debit,MERCHANT_A,1234,REF_X,Shopping,,Synthetic example; debit at merchant
+T-002,BANK_A,INR 75000.00 credited to A/c XX1234 as salary.,2026-10-28 09:00,parsed,income,7500000,credit,EMPLOYER_A,1234,,,Salary,,Synthetic salary credit
+T-003,SBIUPI,UPI payment of Rs. 149 to MERCHANT_B. UPI Ref UPI_REF_Y.,2026-10-28 14:15,parsed,expense,14900,debit,MERCHANT_B,,UPI_REF_Y,Other,,Synthetic UPI payment
+T-004,CARD_A,Credit card XX4321 purchase at SHOP for ₹1200.00.,2026-10-27 18:00,parsed,expense,120000,debit,SHOP,4321,,Shopping,,Synthetic CC purchase — expense
+T-005,BANK_A,Payment of ₹8000 received towards credit card XX4321 from bank A/c XX1234.,2026-10-20 11:00,parsed,transfer,800000,debit,CREDIT_CARD_BILL,4321,,Transfer,,CC bill payment = transfer NOT second expense
+T-006,BANK_A,Transferred ₹5000 from own A/c XX1234 to own A/c XX5678.,2026-10-15 16:30,parsed,transfer,500000,debit,,1234,,Transfer,,Own-account transfer
+T-007,BANK_A,Available balance in A/c XX1234 is ₹10000.00.,2026-10-28 10:31,ignored,,,,,,,,Balance-only; no transaction
+T-008,BANK_A,Your OTP for transaction is OTP_REDACTED. Valid 10 min.,2026-10-28 10:29,ignored,,,,,,,,OTP — never store
+T-009,PROMO_X,Special offer: get cashback on shopping this weekend!,2026-10-28 08:00,ignored,,,,,,,,Promotional — ignore
+T-010,BANK_A,Debited ₹500 from A/c XX1234. Transaction failed. Amount will be reversed.,2026-10-28 12:00,needs_review,,,,,,,,,Failed transaction — not an expense
+T-011,BANK_A,Transaction processed at MERCHANT_A on your account.,2026-10-28 13:00,needs_review,,,,,,,,no_amount,No amount in SMS
+T-012,BANK_A,Your A/c XX1234 is debited by INR 250.00 at MERCHANT_A. Ref REF_X.,2026-10-28 10:30,ignored,,,,,,,,T-001,Duplicate of T-001 — same ref
+T-013,BANK_A,Debited ₹200 at MERCHANT_C and ₹300 at MERCHANT_D on A/c XX1234.,2026-10-28 15:00,needs_review,,,,,,,,,Two transactions in one SMS
+T-014,BANK_A,Refund of ₹250 from MERCHANT_A to A/c XX1234. Ref REF_R.,2026-10-28 16:00,parsed,income,25000,credit,MERCHANT_A,1234,REF_R,Refund,,Refund = income adjustment
+T-015,BANK_A,A/c XX1234 debited ₹1234.56 at MERCHANT_A. Ref REF_Z.,2026-10-28 17:00,parsed,expense,123456,debit,MERCHANT_A,1234,REF_Z,Other,,Exact paise: 123456 not 123455 or 123457
+

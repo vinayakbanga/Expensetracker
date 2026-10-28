@@ -1,0 +1,64 @@
+PAISALOG CODING AGENT — UPDATED MASTER PROMPT
+
+You are implementing PaisaLog, a personal, iPhone-first, local-first SMS-based expense tracker. Read every file in this pre-coding pack before coding, especially:
+- 00_Start_Here.docx
+- 01_Product_Scope_and_Requirements.docx
+- 02_Architecture_and_Data_Model.docx
+- 03_SMS_Parser_and_Test_Cases.docx
+- 04_iPhone_SMS_Capture_POC.docx
+- 05_Windows_Setup_and_Roadmap.docx
+- 06_UI_UX_and_Internal_API_Spec.docx
+- SMS_Corpus_Template.csv
+
+SOURCE OF TRUTH
+Follow the PRD and documents. If there is a conflict or missing decision, document it in DECISIONS.md and ask before introducing a privacy-affecting or scope-changing choice.
+
+PRIVACY AND PLATFORM CONSTRAINTS
+- No backend, REST API server, login, cloud sync, analytics, telemetry, Firebase/Supabase, or external AI API in the MVP without explicit approval.
+- Do not send real SMS or financial data to external services. Use synthetic/redacted samples only.
+- iOS does not provide unrestricted third-party SMS inbox access. Prove the proposed Shortcuts + App Intent workflow on the actual iPhone before claiming it works. Keep manual paste/share and CSV import as fallbacks.
+- Do not claim SQLCipher encryption is active until dependency compatibility, key handling, and encrypted database behavior are verified on the target platform.
+- Windows is suitable for much of development, but native iOS builds/signing require an appropriate Apple development environment, typically macOS and Xcode.
+
+UI/UX
+- Build a polished Flutter UI with bottom navigation: Home, Transactions, Insights, Settings.
+- Home: monthly income/expenses/net savings, category summary, recent transactions, and pending-review indicator.
+- Transactions: search/filter, detail, manual add/edit/delete.
+- Review queue: show uncertain parses and allow explicit correction.
+- Insights: trends and category breakdown; budgets optional.
+- Settings: accounts/categories, privacy/app lock, import/export.
+- Include loading, empty, error, validation, and confirmation states; accessible typography/touch targets; light/dark themes; reusable widgets.
+- Use clearly labelled synthetic data for previews; never fabricate actual account balances.
+
+ARCHITECTURE AND INTERNAL APIs
+- No internet-facing API is required. “API” means typed internal Dart interfaces.
+- Separate presentation, Riverpod state/application logic, domain services, repositories, local persistence, and platform adapters.
+- Define typed interfaces for TransactionRepository, AccountRepository, CategoryRepository, SmsIngestionService, TransactionParser, DeduplicationService, TransferDetectionService, CategorizationService, AnalyticsService, ImportExportService, and SecurityService.
+- Widgets must not contain raw SQL, parser logic, or financial calculations.
+- Use explicit result/error models, input validation, dependency injection, and testable pure domain logic.
+
+FINANCIAL CORRECTNESS
+- Money is integer paise only; never use floating point for money.
+- A credit-card purchase is an expense. Paying the user's own credit-card bill is a transfer, not a second expense.
+- Own-account transfers are not income or expenses.
+- Deduplicate by stable references where available; uncertain matches go to review rather than being silently merged or discarded.
+- Ambiguous parsing must produce needs-review, not a guess.
+
+IMPLEMENTATION ORDER
+1. Inspect the repository, environment, installed tools, and documents. Do not assume Flutter/Dart/VS Code/Git are installed.
+2. Update BUILD_STATUS.md with the environment and blockers; create/update DECISIONS.md.
+3. Prove the iPhone capture path independently with synthetic text and document the result.
+4. Finalize typed data models and internal service/repository contracts.
+5. Build design system, navigation, and screens using synthetic data.
+6. Implement local repositories and persistence; verify encryption separately.
+7. Implement parser, dedupe, transfer detection, categorization, and review queue.
+8. Connect the UI to local data; implement CSV import/export and app lock.
+9. Add unit/widget/platform tests and run all checks possible in the current environment.
+10. Report completed, tested, untested, and blocked work accurately, with the next concrete action.
+
+PROJECT HYGIENE
+- Work in the existing workspace; inspect before modifying and preserve useful existing files.
+- Add no dependency without explaining why it is needed.
+- Keep BUILD_STATUS.md and DECISIONS.md current.
+- Do not claim a test or platform integration passed unless you actually ran it.
+- If blocked, explain the exact blocker and provide the smallest next step; do not replace real implementation with a mock while claiming completion.
