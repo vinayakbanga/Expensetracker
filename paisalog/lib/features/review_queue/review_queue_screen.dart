@@ -162,7 +162,10 @@ class _ReviewCard extends StatelessWidget {
               children: [
                 Text(
                   'Resolve Transaction',
-                  style: PaisaTextStyles.headingSmall,
+                  style: PaisaTextStyles.amountSmall.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: PaisaSpacing.xs),
