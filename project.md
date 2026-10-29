@@ -1,129 +1,249 @@
-# PaisaLog — Project Status & Roadmap
+# PaisaLog — Master Project Context, Specification & Status
 
-> **Single Source of Truth for Progress & Checklist**
-> Last updated: 2026-10-29 11:05 IST
-
----
-
-## 📌 Project Overview
-PaisaLog is a personal, iPhone-first, local-first SMS-based expense tracker built with Flutter/Dart.
-- **Privacy & Storage:** 100% offline, local-first on SQLite/Drift. No backend, no accounts, no cloud sync, no analytics, no external AI APIs.
-- **Financial Precision:** All amounts stored as strictly integer paise (1 INR = 100 paise). Zero floating-point math for money.
-- **Classification:** 4 canonical types: `income`, `expense`, `transfer`, `needsReview`.
-- **Deduplication & Safe Parsing:** Exact bank/UPI reference matching with time-window heuristic fallback. Uncertain parses always route to the review queue instead of guessing.
+> **Single Source of Truth for Context, Architecture, Decisions, and Live Checklist**
+> Last updated: 2026-10-29 11:15 IST
+> Target Platform: iOS (iPhone 17 Pro Max) | Development Environment: Windows 11 + VS Code + Flutter 3.47.8
 
 ---
 
-## 📋 Comprehensive Checklist
+## 1. Executive Summary & Product Scope
 
-### 1. Environment & Project Foundation
-- [x] Pre-coding specifications reviewed (00–06 docx + SMS template)
-- [x] Flutter SDK 3.47.8 & Dart 3.13.7 configured and verified (`D:\flutter\bin`)
-- [x] Git repository initialized with strict `.gitignore` (excludes DB files, secrets, real SMS)
-- [x] Package dependencies installed & resolved (`flutter pub get` — 146 dependencies)
-- [x] Code-generation pipeline verified (`build_runner` with 119 outputs generated)
-- [x] Decisions logged in `DECISIONS.md`
-- [x] Initial clean baseline committed to Git (`master`)
+### 1.1 Product Goal
+PaisaLog is a private, personal-use, iPhone-first, local-first expense tracker. It transforms financial SMS messages from Indian banks, credit cards, and payment providers (UPI, NEFT, IMPS) into a local transaction ledger without exposing private financial data to third-party cloud servers.
 
-### 2. Domain Layer (Pure Dart — No Framework/IO Coupling)
-- [x] `Money` value object (integer paise arithmetic, exact Rupee string parser, display formatter)
-- [x] Canonical data models: `Transaction`, `Account`, `Category`, `TransactionFilters`, `MonthlySummary`, `CategoryBreakdownItem`, `SpendingTrendPoint`, `Result<T>`, `AppError`
-- [x] 10 typed internal Dart interfaces:
-  - `TransactionRepository`, `AccountRepository`, `CategoryRepository`
-  - `SmsIngestionService`, `TransactionParser`, `DeduplicationService`
-  - `TransferDetectionService`, `CategorizationService`, `AnalyticsService`
-  - `ImportExportService`, `SecurityService`
-- [x] Deterministic regex SMS Parser:
-  - High-priority ignore guards: OTPs, promotional SMS, balance-only notifications
-  - Transaction rules: Generic debits, UPI formats, Credit card purchases
-  - Credit card bill payment classifier (classified as transfer, not second expense)
-  - Own-account transfer recognition
-- [x] Deduplication service (reference ID comparison + time-window fallback)
-- [x] Transfer detection service (counterparty verification against known user accounts)
-- [x] Categorization service (keyword matching + user correction learning)
-- [x] SMS ingestion pipeline service (`sms_ingestion_service.dart`)
+### 1.2 Core Privacy & Platform Guardrails
+- **No Cloud Backend / No User Account:** No signup, authentication servers, Firebase, Supabase, AWS, or remote databases.
+- **No Telemetry / No Analytics:** No crash logging or usage tracking sent to external hosts.
+- **No External AI APIs:** No cloud LLM/ML classification services that transmit financial messages off-device.
+- **On-Device Data Sovereignty:** All database storage, parser execution, deduplication, and calculations happen strictly on the local device.
+- **Synthetic Data for Development:** Only synthetic and redacted SMS fixtures (`MERCHANT_A`, `XX1234`, `REF_X`) are permitted in source code and test fixtures.
 
-### 3. Data & Persistence Layer
-- [x] Drift schema with 5 tables: `AccountsTable`, `CategoriesTable`, `TransactionsTable`, `IngestionQueueTable`, `UserCorrectionsTable`
-- [x] Pre-seeded with 11 standard system categories
-- [x] `DriftTransactionRepository` (CRUD, filtering, real-time reactive streams)
-- [x] `DriftAccountRepository` & `DriftCategoryRepository` (system category protection)
-- [x] `DefaultImportExportService` (CSV import preview with row validation, CSV export)
-- [x] `DefaultSecurityService` (local_auth biometric & lock stubs)
-
-### 4. Presentation Layer & UI Design System
-- [x] `PaisaTheme` supporting both Light and Dark themes, custom `PaisaThemeExtension` for semantic finance colors
-- [x] Declarative bottom navigation with `go_router` (`StatefulShellRoute` with 4 tabs)
-- [x] 8 reusable UI components:
-  - `AmountDisplay` (integer paise formatted with color coding and sign)
-  - `TransactionRow` (interactive row with category indicator and review badges)
-  - `SummaryCard` (stat card with shimmer loading state)
-  - `EmptyState` (custom states for no transactions, empty review queue, and errors)
-  - `CategoryChip` (badge with icon and category color)
-  - `ReviewBanner` (actionable pending count banner linking to `/review`)
-  - `LoadingState` (full-screen centered progress indicator)
-  - `ConfirmationDialog` (alert modal for destructive actions like delete)
-- [x] 7 screens:
-  - **Home (Dashboard):** Net savings summary, income/expenses cards, pending review banner, recent transactions list
-  - **Transactions:** Real-time searchable & filterable list (all, expenses, income, transfers, review)
-  - **Transaction Details:** Complete transaction metadata display and delete action
-  - **Transaction Editor:** Add/edit form with integer paise validation, type selector, and date/time picker
-  - **Review Queue:** Card list of unclassified or ambiguous SMS items with reason and resolution actions
-  - **Insights:** Income vs expense comparison bar, net savings indicator, and month navigator
-  - **Settings:** Hub for account/category management, privacy info, export warnings, and iOS Shortcuts status
-
-### 5. Automated Testing Suite
-- [x] **38 / 38 Tests Passing (`flutter test`)**
-  - **16 Parser Tests (`sms_parser_test.dart`):**
-    - T-001: Generic debit parsing & paise precision
-    - T-002: Salary credit parsing
-    - T-003: UPI payment & reference ID extraction
-    - T-004: Credit card purchase as expense
-    - T-005: Credit card bill payment as transfer (not duplicate expense)
-    - T-006: Own-account transfer detection
-    - T-007: Balance-only message ignored
-    - T-008: OTP message ignored
-    - T-009: Promotional message ignored
-    - T-010: Failed transaction routed to review queue
-    - T-011: Missing amount routed to review queue
-    - T-015: Exact decimal paise arithmetic (e.g., ₹1,234.56 = 123456 paise)
-    - Money class integer parsing and display formatting
-    - MonthlyPeriod month-rollover boundaries
-  - **8 Deduplication & Transfer Tests (`deduplication_test.dart`):**
-    - Exact reference ID deduplication
-    - Non-matching reference ID handling
-    - Time-window + amount heuristic uncertainty flagging
-    - T-012: Repeated identical SMS deduplicated
-    - Transfer classification with known accounts
-  - **6 UI Widget Tests (`ui_screens_test.dart`):**
-    - Dashboard header and summary cards rendering
-    - Review banner display when items pending
-    - Transactions screen search bar and filter chips
-    - Filter chip interaction
-    - Review queue cards and reason visibility
-    - Empty state rendering when review queue is clear
-  - **Synthetic Test Corpus:** `sms_corpus_synthetic.csv` with 15 synthetic bank messages
+### 1.3 Out of Scope for MVP
+- Public Apple App Store publication or multi-user enterprise features.
+- Automated bank scraping, open banking APIs, or payment initiation.
+- Guaranteed real-time background processing while the app is closed (iOS App Intents process queued messages upon app opening/foregrounding).
+- Android SMS inbox integration (possible future phase after iOS workflow is fully validated).
 
 ---
 
-## 🔄 What Is Next (Immediate Priorities)
+## 2. Financial Correctness Principles
 
-1. **Complete Settings Sub-Screens:**
-   - [ ] Accounts management view (`/settings/accounts`)
-   - [ ] Categories management view (`/settings/categories`)
-   - [ ] App Lock / biometric security settings (`/settings/privacy`)
-   - [ ] CSV import preview & file picker integration (`/settings/import-export`)
-2. **Category Breakdown in Insights:**
-   - [ ] Implement `CategoryBreakdown` chart using `fl_chart`
-3. **Synthetic SMS Ingestion Tester:**
-   - [ ] Add an in-app developer/testing panel to paste synthetic SMS strings and test immediate parsing, deduplication, and ledger storage in real-time.
+1. **Integer Paise Precision:**
+   - Money is strictly stored and calculated in Indian Paise as integers (`int`).
+   - Example: ₹1,234.56 is stored as `123456`.
+   - Floating-point representations (`double`) are strictly prohibited in financial logic to prevent IEEE-754 precision loss.
+2. **Four Canonical Transaction Types:**
+   - `expense`: External outflow (purchases, utility bills, subscriptions).
+   - `income`: External inflow (salary, external deposits, refunds).
+   - `transfer`: Movement between user-owned accounts (credit card bill payments, bank-to-bank own transfers). **Transfers do not inflate income or expense totals.**
+   - `needsReview`: Incomplete or ambiguous parses that require user confirmation before affecting totals.
+3. **Credit Card Financial Logic:**
+   - A credit card purchase/swipe is an **expense**.
+   - A later bank payment paying the user's credit card bill is a **transfer** (not a second expense).
+4. **Deterministic Deduplication:**
+   - Uses unique bank/UPI reference numbers (RRN, UTR, UPI Ref) as primary deduplication identifiers.
+   - Secondary fallback uses a safe fingerprint (amount + direction + account hint + 60-minute time window).
+   - Ambiguous matches are routed to the **review queue** rather than silently merged or discarded.
+5. **Conservative Uncertainty Handling:**
+   - If an SMS contains conflicting signals (e.g. "debited" but "transaction failed"), it is classified as `needsReview`.
 
 ---
 
-## 🔴 External Blockers & Constraints
+## 3. Architecture & Internal API Specifications
 
-| Blocker | Impact | Next Action / Resolution |
-|---------|--------|--------------------------|
-| **macOS / Xcode required for iOS build** | Windows cannot compile or sign iOS `.ipa` files directly | Build using cloud macOS runner (GitHub Actions / Codemagic) or on a physical Mac when ready for on-device deployment |
-| **Shortcuts + App Intents verification** | Cannot verify background SMS trigger on Windows | Test using personal automation on physical iPhone per `04_iPhone_SMS_Capture_POC.docx` once iOS build target is established |
-| **SQLCipher verification** | Currently running plain SQLite via Drift | Test `sqlcipher_flutter_libs` compatibility before storing real financial data |
+### 3.1 Layer Boundaries
+```
+┌────────────────────────────────────────────────────────┐
+│               Flutter UI Presentation                  │
+│  (Screens, Reusable Widgets, Theme, Declarative Router) │
+└──────────────────────────┬─────────────────────────────┘
+                           │ Watches / Reads
+┌──────────────────────────▼─────────────────────────────┐
+│          Riverpod Application & State Layer            │
+│  (Providers, Filter Notifiers, Streams, ViewModels)    │
+└──────────────────────────┬─────────────────────────────┘
+                           │ Calls typed interfaces
+┌──────────────────────────▼─────────────────────────────┐
+│         Domain Services & Pure Business Logic          │
+│  (Parser Rules, Deduplication, Transfer Detector, etc)  │
+└──────────────────────────┬─────────────────────────────┘
+                           │ Persists / Retrieves
+┌──────────────────────────▼─────────────────────────────┐
+│             Data Repositories & Drift ORM              │
+│       (Local SQLite Database with 5 Typed Tables)       │
+└────────────────────────────────────────────────────────┘
+```
+- **Rule:** Widgets must never execute raw SQL, regex parsing, or financial math. All data access is mediated by Riverpod providers calling typed repository contracts.
+
+### 3.2 Internal Typed Service & Repository Contracts
+All internal contracts are pure Dart interfaces defined in `lib/domain/services/service_contracts.dart`:
+1. `TransactionRepository`: Persistence operations (CRUD, filtering, real-time streams, pending count).
+2. `AccountRepository`: Bank/card account metadata management (masking last 4 digits).
+3. `CategoryRepository`: Category hierarchy management with protection for system-seeded categories.
+4. `SmsIngestionService`: End-to-end pipeline coordinating parser, deduplicator, transfer detector, categorizer, and database write.
+5. `TransactionParser`: Pure parsing engine outputting `ParsedCandidate`, `ParseNeedsReview`, or `ParseIgnored`.
+6. `DeduplicationService`: Evaluates candidates against historical records for duplicate detection.
+7. `TransferDetectionService`: Distinguishes own-account movements from external spending.
+8. `CategorizationService`: Keyword-based suggestion engine with user correction memory.
+9. `AnalyticsService`: Aggregates monthly summaries and category breakdowns.
+10. `ImportExportService`: CSV statement import preview, validation, and export generation.
+11. `SecurityService`: Local device authentication (Face ID / Touch ID / Passcode) and app lock state.
+
+---
+
+## 4. iOS Capture Workflow & POC Context
+
+### 4.1 iOS Platform Constraints
+iOS does not provide third-party applications with background access to the SMS inbox. The ingestion route relies on:
+1. **Shortcuts Personal Automation:** User configures a local trigger on their iPhone for incoming Messages.
+2. **Swift App Intent:** Automation forwards the message body into a local App Group container / queue.
+3. **Flutter App Ingestion:** When PaisaLog opens or comes to the foreground, the queue is drained and processed into the local Drift database.
+
+### 4.2 Proof of Concept (POC) Gate
+- **Status:** Unverified on device. Windows development does not support direct iOS signing/debugging.
+- **Requirement:** The capture path must be proven on the actual iPhone 17 Pro Max using synthetic messages before being declared complete.
+- **Fail-safe Fallback:** Manual add/edit/delete, clipboard paste, and CSV statement imports are already fully functional as primary alternatives.
+
+---
+
+## 5. Decision Log (DECISIONS.md Summary)
+
+| ID | Topic | Working Decision | Status |
+|----|-------|------------------|--------|
+| SD-001 | Money Precision | Integer paise only (`int`). Zero floating-point arithmetic. | Settled |
+| SD-002 | Offline Architecture | Local-first. No cloud backend, sync, or telemetry. | Settled |
+| SD-003 | State Management | `flutter_riverpod` + code generation. | Settled |
+| SD-004 | Declarative Routing | `go_router` with `StatefulShellRoute` (4 bottom tabs). | Settled |
+| SD-005 | Persistence | Drift ORM with local SQLite. | Settled |
+| SD-006 | Device Security | `local_auth` (Face ID / Passcode) stubbed; Keychain storage. | Settled |
+| D-001 | iOS Installation | Personal install via macOS CI (GitHub Actions / Codemagic). | Open |
+| D-003 | Database Encryption | Plain SQLite for MVP. SQLCipher upgrade deferred until iOS verification. | Open |
+| D-005 | SMS Timing | Local queuing processed upon app foreground. | Open |
+
+---
+
+## 6. Codebase File Structure Map
+
+```
+d:\Expense tracker\paisalog\
+├── lib\
+│   ├── app\
+│   │   ├── app.dart                   # Root MaterialApp with theme & router
+│   │   ├── providers.dart             # Riverpod providers & synthetic data
+│   │   ├── router.dart                # go_router StatefulShellRoute configuration
+│   │   ├── theme.dart                 # PaisaColors, PaisaSpacing, PaisaThemeExtension
+│   │   └── widgets\
+│   │       ├── amount_display.dart    # Formatted integer paise currency widget
+│   │       ├── category_chip.dart     # Color-coded category badge with icon
+│   │       ├── confirmation_dialog.dart # Destructive action alert modal
+│   │       ├── empty_state.dart       # Empty/error/caught-up placeholders
+│   │       ├── loading_state.dart     # Centered loading progress indicator
+│   │       ├── review_banner.dart     # Actionable review counter banner
+│   │       ├── summary_card.dart      # Income/Expense/Savings metric card
+│   │       └── transaction_row.dart   # Interactive ledger list item
+│   ├── data\
+│   │   ├── database\
+│   │   │   ├── app_database.dart      # Drift database connection & migrations
+│   │   │   └── tables.dart            # Table schemas (Accounts, Categories, Transactions, etc)
+│   │   ├── importers\
+│   │   │   └── import_export_service.dart # CSV round-trip preview and export
+│   │   └── repositories\
+│   │       ├── account_category_repositories.dart # Account & Category Drift DAOs
+│   │       ├── security_service.dart  # Device unlock & biometric service
+│   │       └── transaction_repository.dart # Transaction Drift DAO with filters & streams
+│   ├── domain\
+│   │   ├── models\
+│   │   │   └── models.dart            # Money, Transaction, Account, Category, Enums, Results
+│   │   └── services\
+│   │       ├── domain_services.dart   # Deduplication, Transfer, Categorization services
+│   │       ├── service_contracts.dart # 10 abstract interfaces
+│   │       ├── sms_ingestion_service.dart # End-to-end processing pipeline
+│   │       └── sms_parser.dart        # Deterministic regex parser with ignore guards
+│   ├── features\
+│   │   ├── dashboard\
+│   │   │   └── dashboard_screen.dart  # Home tab (net savings, cards, review banner, recent)
+│   │   ├── insights\
+│   │   │   └── insights_screen.dart   # Insights tab (income vs expense bar, month nav)
+│   │   ├── review_queue\
+│   │   │   └── review_queue_screen.dart # Review queue tab (ambiguous parses & resolution)
+│   │   ├── settings\
+│   │   │   └── settings_screen.dart   # Settings tab (accounts, categories, privacy, CSV)
+│   │   └── transactions\
+│   │       ├── transaction_detail_screen.dart # Full metadata view & delete action
+│   │       ├── transaction_editor_screen.dart # Add/edit form with integer validation
+│   │       └── transactions_screen.dart # Searchable & filterable ledger view
+│   ├── main.dart                      # Flutter app entry point (ProviderScope)
+│   └── platform\
+│       └── ios_capture\
+│           └── ios_capture_adapter.dart # Stub capture adapter (isCaptureVerified = false)
+├── test\
+│   ├── dedupe\
+│   │   └── deduplication_test.dart    # 8 deduplication and transfer tests
+│   ├── fixtures\
+│   │   └── sms_corpus_synthetic.csv   # 15 synthetic bank SMS test cases
+│   ├── parser\
+│   │   └── sms_parser_test.dart       # 16 parser, paise precision, and boundary tests
+│   └── widgets\
+│       └── ui_screens_test.dart       # 6 UI widget tests for dashboard, transactions & review
+├── analysis_options.yaml              # Code quality & float-money lint rules
+└── pubspec.yaml                       # Package dependencies & assets
+```
+
+---
+
+## 7. Live Project Checklist
+
+### ✅ Completed & Verified
+
+1. **Environment & Tooling**
+   - [x] Flutter SDK 3.47.8 & Dart 3.13.7 configured at `D:\flutter\bin`.
+   - [x] Package resolution complete (`flutter pub get` — 146 dependencies).
+   - [x] Drift and Riverpod code generation complete (`build_runner` — 119 outputs).
+   - [x] Git repository initialized and clean.
+
+2. **Domain & Business Logic**
+   - [x] `Money` object with integer paise arithmetic and display formatting.
+   - [x] 10 typed service contracts implemented.
+   - [x] SMS Parser covering OTPs, promotions, balance notices, debits, UPI, credit cards, bill payments, and own transfers.
+   - [x] Reference-first deduplication with time-window heuristic fallback.
+   - [x] Transfer detection distinguishing purchases from bill payments.
+   - [x] Ingestion pipeline coordinating all domain services.
+
+3. **Persistence & Data Layer**
+   - [x] 5 Drift database tables with integer money columns.
+   - [x] 11 pre-seeded system categories.
+   - [x] Drift repositories supporting CRUD, search queries, and real-time reactive streams.
+   - [x] CSV Import/Export service with row validation and duplicate prevention.
+
+4. **UI & Design System**
+   - [x] Full design system with Light and Dark modes.
+   - [x] Declarative bottom navigation with `go_router` (4 tabs).
+   - [x] 8 reusable UI components.
+   - [x] 7 screens (Dashboard, Transactions, Detail, Editor, Review Queue, Insights, Settings).
+
+5. **Automated Testing Suite (38 / 38 Tests Passing)**
+   - [x] 16 SMS Parser & Money tests (`sms_parser_test.dart`).
+   - [x] 8 Deduplication & Transfer tests (`deduplication_test.dart`).
+   - [x] 6 Screen Widget tests (`ui_screens_test.dart`).
+
+---
+
+## 8. Active & Next Priorities
+
+- [ ] **Task 1: Complete Settings Sub-Screens**
+  - Accounts management (`/settings/accounts`)
+  - Categories management (`/settings/categories`)
+  - App Lock / biometric preferences (`/settings/privacy`)
+  - CSV Import/Export UI with preview dialog (`/settings/import-export`)
+- [ ] **Task 2: Implement Category Breakdown Chart in Insights**
+  - Add interactive pie chart using `fl_chart`.
+- [ ] **Task 3: In-App SMS Testing & Ingestion Panel**
+  - Provide an on-device/desktop testing interface to paste synthetic SMS strings and verify live parsing, deduplication, and database insertion.
+
+---
+
+## 9. External Blockers
+
+1. **macOS / Xcode Environment:** Required to compile native iOS binaries and sign for the physical iPhone 17 Pro Max. (Windows provides complete Flutter/Dart testing coverage).
+2. **Shortcuts Automation POC:** Physical execution on the iPhone to measure friction and background payload behavior.
+3. **SQLCipher Verification:** On-device encryption verification before storing actual personal financial records.
