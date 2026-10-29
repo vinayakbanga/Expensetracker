@@ -44,6 +44,10 @@ class DriftTransactionRepository implements TransactionRepository {
 
   TransactionsTableCompanion _inputToCompanion(String id, TransactionInput input) {
     final now = DateTime.now();
+    final effectiveReviewStatus = input.type == TransactionType.needsReview
+        ? ReviewStatus.pendingReview
+        : input.reviewStatus;
+
     return TransactionsTableCompanion.insert(
       id: id,
       amountPaise: input.amountPaise,
@@ -52,9 +56,13 @@ class DriftTransactionRepository implements TransactionRepository {
       merchantOrCounterparty: Value(input.merchantOrCounterparty),
       occurredAt: input.occurredAt,
       categoryId: Value(input.categoryId),
-      source: TransactionSource.manual.name,
-      confidence: ParseConfidence.high.name,
-      reviewStatus: ReviewStatus.notRequired.name,
+      accountHint: Value(input.accountHint),
+      referenceId: Value(input.referenceId),
+      source: input.source.name,
+      confidence: input.confidence.name,
+      reviewStatus: effectiveReviewStatus.name,
+      reviewReason: Value(input.reviewReason),
+      parserRuleId: Value(input.parserRuleId),
       createdAt: now,
       updatedAt: now,
     );
@@ -108,6 +116,11 @@ class DriftTransactionRepository implements TransactionRepository {
     }
 
     try {
+      final wasPending = existing.reviewStatus == ReviewStatus.pendingReview;
+      final newStatus = (wasPending && changes.type != TransactionType.needsReview)
+          ? ReviewStatus.corrected
+          : changes.reviewStatus;
+
       await (_db.update(_db.transactionsTable)..where((t) => t.id.equals(id)))
           .write(
         TransactionsTableCompanion(
@@ -117,6 +130,12 @@ class DriftTransactionRepository implements TransactionRepository {
           merchantOrCounterparty: Value(changes.merchantOrCounterparty),
           occurredAt: Value(changes.occurredAt),
           categoryId: Value(changes.categoryId),
+          reviewStatus: Value(newStatus.name),
+          reviewReason: Value(
+            newStatus == ReviewStatus.corrected
+                ? null
+                : changes.reviewReason ?? existing.reviewReason,
+          ),
           updatedAt: Value(DateTime.now()),
         ),
       );

@@ -101,21 +101,28 @@ final List<SmsParserRule> defaultParserRules = [
     id: 'UPI_PAYMENT',
     description: 'UPI payment',
     senderPattern: RegExp(
-      r'\b(?:SBIUPI|ICICIB|HDFCBK|AXISBK|KOTAKB|PAYTM|GPAY|PHONEPE|BHIM)\b',
+      r'\b(?:SBIUPI|ICICIB|HDFCBK|AXISBK|KOTAKB|PAYTM|GPAY|PHONEPE|BHIM|SBI-UPI)\b',
       caseSensitive: false,
     ),
     amountPattern: RegExp(
       r'(?:INR|Rs\.?|₹)\s*([\d,]+(?:\.\d{1,2})?)',
       caseSensitive: false,
     ),
-    debitPattern: RegExp(r'\b(?:paid|payment|debited?|sent)\b', caseSensitive: false),
+    debitPattern: RegExp(
+      r'\b(?:paid|payment|debited?|sent|spent|used|withdrawn|transferred?|transfer)\b',
+      caseSensitive: false,
+    ),
     creditPattern: RegExp(r'\b(?:received|credited?)\b', caseSensitive: false),
     referencePattern: RegExp(
       r'UPI\s*[Rr]ef(?:erence)?\s*(?:No\.?)?\s*[:\s]?([A-Z0-9_]{6,30})',
       caseSensitive: false,
     ),
     merchantPattern: RegExp(
-      r'(?:to|from)\s+([A-Z0-9][A-Z0-9 _\-&]{1,60}?)(?:\.|,|;|\s+VPA|\s+UPI)',
+      r'(?:to|at|towards)\s+([A-Z0-9][A-Z0-9 _\-&]{1,60}?)(?:\.|,|;|\s+on|\s+ref|\s+VPA|\s+UPI)',
+      caseSensitive: false,
+    ),
+    accountHintPattern: RegExp(
+      r'(?:a/c|acct|account|card)\s*(?:no\.?\s*)?[xX*]{0,8}(\d{4})',
       caseSensitive: false,
     ),
     ignorePatterns: [],
@@ -162,11 +169,11 @@ final List<SmsParserRule> defaultParserRules = [
       caseSensitive: false,
     ),
     debitPattern: RegExp(
-      r'\b(?:spent|purchase(?:d)?|used\s+(?:at|for)|debited?)\b',
+      r'\b(?:spent|purchase(?:d)?|used\s+(?:at|for)|debited?|charged|swiped)\b',
       caseSensitive: false,
     ),
     merchantPattern: RegExp(
-      r'(?:at|for)\s+([A-Z0-9][A-Z0-9 _\-&]{1,60}?)(?:\.|,|\s+on|\s+ref)',
+      r'(?:at|for|towards)\s+([A-Z0-9][A-Z0-9 _\-&]{1,60}?)(?:\.|,|\s+on|\s+ref)',
       caseSensitive: false,
     ),
     referencePattern: RegExp(
@@ -266,17 +273,14 @@ class DefaultTransactionParser implements TransactionParser {
       if (amount == null) continue;
 
       final direction = _extractDirection(normalised, rule);
+      if (direction == TransactionDirection.unknown) {
+        // Try other rules before concluding direction is unknown
+        continue;
+      }
+
       final merchant = _extractGroup(normalised, rule.merchantPattern);
       final ref = _extractGroup(normalised, rule.referencePattern);
       final acct = _extractGroup(normalised, rule.accountHintPattern);
-
-      if (direction == TransactionDirection.unknown) {
-        return ParseNeedsReview(
-          reason: 'unknown_direction',
-          amountPaise: amount,
-          accountHint: acct,
-        );
-      }
 
       final type = _classifyType(rule.id, direction, normalised);
 
@@ -293,12 +297,41 @@ class DefaultTransactionParser implements TransactionParser {
       );
     }
 
-    // 4. No amount found at all
-    if (!RegExp(r'(?:INR|Rs\.?|₹)\s*[\d,]+', caseSensitive: false).hasMatch(normalised)) {
-      return const ParseIgnored(reason: 'no_financial_content');
+    // 4. Fallback: check if an amount was detected but no rule could fully classify
+    final fallbackAmount = _extractFallbackAmount(normalised);
+    if (fallbackAmount != null) {
+      final acctMatch = RegExp(
+        r'(?:a/c|acct|account|card)\s*(?:no\.?\s*)?[xX*]{0,8}(\d{4})',
+        caseSensitive: false,
+      ).firstMatch(normalised);
+
+      return ParseNeedsReview(
+        reason: 'unsupported_template',
+        amountPaise: fallbackAmount,
+        accountHint: acctMatch?.group(1),
+      );
     }
 
-    return const ParseNeedsReview(reason: 'unsupported_template');
+    return const ParseIgnored(reason: 'no_financial_content');
+  }
+
+  int? _extractFallbackAmount(String text) {
+    final match = RegExp(
+      r'(?:INR|Rs\.?|₹)\s*([\d,]+(?:\.\d{1,2})?)',
+      caseSensitive: false,
+    ).firstMatch(text);
+    if (match == null || match.groupCount < 1) return null;
+    final raw = match.group(1)!.replaceAll(',', '');
+    final parts = raw.split('.');
+    final rupees = int.tryParse(parts[0]);
+    if (rupees == null) return null;
+    int paise = rupees * 100;
+    if (parts.length == 2 && parts[1].isNotEmpty) {
+      final paiseStr = parts[1].padRight(2, '0').substring(0, 2);
+      final paiseVal = int.tryParse(paiseStr);
+      if (paiseVal != null) paise += paiseVal;
+    }
+    return paise > 0 ? paise : null;
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -364,10 +397,9 @@ class DefaultTransactionParser implements TransactionParser {
   ) {
     if (ruleId == 'CC_BILL_PAYMENT') return TransactionType.transfer;
     if (RegExp(
-      r'\b(?:transfer(?:red)?|neft|rtgs|imps)\b',
+      r'\b(?:own\s+account|self\s+transfer|between\s+(?:own\s+)?accounts|transfer\s+to\s+own|transferred.*own|transfer.*own)\b',
       caseSensitive: false,
     ).hasMatch(text)) {
-      // Own-account transfer — may need further check via TransferDetectionService
       return TransactionType.transfer;
     }
     if (direction == TransactionDirection.credit) {

@@ -243,10 +243,11 @@ d:\Expense tracker\paisalog\
      - CSV Import / Export with table preview (`/settings/import-export`)
      - **SMS Simulator & Sandbox (`/settings/simulator`)** with 7 bank presets for live testing
 
-5. **Automated Testing Suite (38 / 38 Tests Passing)**
-   - [x] 16 SMS Parser & Money tests (`sms_parser_test.dart`).
+5. **Automated Testing Suite (40 / 40 Tests Passing)**
+   - [x] 18 SMS Parser & Money tests (`sms_parser_test.dart` including CC & UPI expense sanity tests).
    - [x] 8 Deduplication & Transfer tests (`deduplication_test.dart`).
    - [x] 6 Screen Widget tests (`ui_screens_test.dart`).
+   - [x] Resolved pending review issue: decoupled candidate rule evaluation, enriched TransactionInput metadata persistence (referenceId, accountHint), refined transfer keyword detection for payments, and fixed review resolution in updates.
 
 ---
 

@@ -251,6 +251,13 @@ class TransactionInput {
   final String? accountId;
   final String? categoryId;
   final String? notes;
+  final String? accountHint;
+  final String? referenceId;
+  final TransactionSource source;
+  final ParseConfidence confidence;
+  final ReviewStatus reviewStatus;
+  final String? reviewReason;
+  final String? parserRuleId;
 
   const TransactionInput({
     required this.amountPaise,
@@ -261,6 +268,13 @@ class TransactionInput {
     this.accountId,
     this.categoryId,
     this.notes,
+    this.accountHint,
+    this.referenceId,
+    this.source = TransactionSource.manual,
+    this.confidence = ParseConfidence.high,
+    this.reviewStatus = ReviewStatus.notRequired,
+    this.reviewReason,
+    this.parserRuleId,
   });
 
   /// Returns null if valid, or an error message string.

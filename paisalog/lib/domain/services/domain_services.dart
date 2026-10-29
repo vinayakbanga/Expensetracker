@@ -40,21 +40,30 @@ class DefaultDeduplicationService implements DeduplicationService {
       if (tx.amountPaise != candidate.amountPaise) continue;
       if (tx.direction != candidate.direction) continue;
 
-      double score = 0.6; // base score for amount+direction+window match
+      // If both have different explicit reference IDs, they are distinct transactions
+      if (candidate.referenceId != null &&
+          tx.referenceId != null &&
+          candidate.referenceId!.isNotEmpty &&
+          tx.referenceId!.isNotEmpty &&
+          candidate.referenceId != tx.referenceId) {
+        continue;
+      }
+
+      double score = 0.5;
 
       if (tx.accountHint != null &&
           candidate.accountHint != null &&
           tx.accountHint == candidate.accountHint) {
-        score += 0.2;
+        score += 0.25;
       }
 
       if (tx.merchantOrCounterparty != null &&
           candidate.merchantOrCounterparty != null &&
           tx.merchantOrCounterparty == candidate.merchantOrCounterparty) {
-        score += 0.15;
+        score += 0.2;
       }
 
-      if (score >= 0.95) {
+      if (score >= 0.9) {
         return DuplicateFound(existingTransaction: tx, confidence: score);
       }
       if (score >= 0.6) {
@@ -96,40 +105,44 @@ class DefaultTransferDetectionService implements TransferDetectionService {
     ParsedCandidate candidate,
     List<Account> knownAccounts,
   ) {
-    final merchant = candidate.merchantOrCounterparty?.toUpperCase() ?? '';
-    final text = '${merchant}__${candidate.parserRuleId ?? ''}';
-
     // Credit-card bill payment already flagged by parser
     if (candidate.parserRuleId == 'CC_BILL_PAYMENT') {
       return const DetectedTransfer(relatedAccountId: null);
     }
 
-    // Explicit transfer keywords
+    final merchant = candidate.merchantOrCounterparty?.toUpperCase() ?? '';
+
+    // If parser did not identify a transfer and merchant does not mention inter-bank transfer words,
+    // it is an ordinary transaction.
     final transferKeywords = RegExp(
       r'\b(?:TRANSFER|NEFT|RTGS|IMPS|OWN\s+ACCOUNT|INTERNAL)\b',
       caseSensitive: false,
     );
-    if (transferKeywords.hasMatch(text)) {
-      // Check if both accounts are known user accounts
-      final acctHint = candidate.accountHint;
-      if (acctHint != null) {
-        final related = knownAccounts.where(
-          (a) => a.maskedIdentifier == acctHint,
-        );
-        if (related.isNotEmpty) {
-          return DetectedTransfer(relatedAccountId: related.first.id);
-        }
-        // Looks like a transfer but counterparty account unknown
-        return const TransferNeedsReview(
-          reason: 'Transfer detected but counterparty account not in known accounts list',
-        );
+
+    final isTransferCandidate = candidate.type == TransactionType.transfer ||
+        transferKeywords.hasMatch(merchant);
+
+    if (!isTransferCandidate) {
+      return const OrdinaryTransaction();
+    }
+
+    // Check if counterparty/account is a known user account
+    final acctHint = candidate.accountHint;
+    if (acctHint != null) {
+      final related = knownAccounts.where(
+        (a) => a.maskedIdentifier == acctHint,
+      );
+      if (related.isNotEmpty) {
+        return DetectedTransfer(relatedAccountId: related.first.id);
       }
       return const TransferNeedsReview(
-        reason: 'Transfer keyword found but no account hint to verify',
+        reason: 'Transfer detected but counterparty account not in known accounts list',
       );
     }
 
-    return const OrdinaryTransaction();
+    return const TransferNeedsReview(
+      reason: 'Transfer keyword found but no account hint to verify',
+    );
   }
 }
 

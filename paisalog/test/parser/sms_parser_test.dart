@@ -217,5 +217,28 @@ void main() {
       expect(MonthlyPeriod(2026, 10).toString(), equals('2026-10'));
     });
   });
+
+  group('Expense parsing sanity checks', () {
+    test('ICICIB credit card spent SMS parses directly as expense (not needsReview)', () {
+      const sms =
+          'Alert: INR 1,299.00 spent on your Credit Card ending 9876 at AMAZON INDIA on 26-OCT-26. Avail Limit: 98,701.00';
+      final result = parser.parse(sms, ctx(sender: 'ICICIB'));
+      expect(result, isA<ParsedCandidate>());
+      final c = result as ParsedCandidate;
+      expect(c.amountPaise, equals(129900));
+      expect(c.type, equals(TransactionType.expense));
+      expect(c.direction, equals(TransactionDirection.debit));
+    });
+
+    test('SBI UPI debit with transferred keyword to merchant is expense', () {
+      const sms =
+          'Paid Rs.149.00 to CHAI_POINT on 25-OCT-26 via UPI Ref 429817291. Avail Bal: Rs.12,300.00';
+      final result = parser.parse(sms, ctx(sender: 'SBI-UPI'));
+      expect(result, isA<ParsedCandidate>());
+      final c = result as ParsedCandidate;
+      expect(c.amountPaise, equals(14900));
+      expect(c.type, equals(TransactionType.expense));
+    });
+  });
 }
 

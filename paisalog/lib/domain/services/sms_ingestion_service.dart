@@ -41,20 +41,17 @@ class DefaultSmsIngestionService implements SmsIngestionService {
         return IngestionIgnored(reason: reason);
 
       case ParseNeedsReview(:final reason, :final amountPaise, :final direction, :final accountHint):
-        // Build a partial transaction for the review queue
-        final tx = await _buildReviewTransaction(
-          amountPaise: amountPaise,
-          direction: direction,
-          accountHint: accountHint,
-          reason: reason,
-          receivedAt: receivedAt,
-        );
         final saveResult = await repository.addTransaction(
           TransactionInput(
             amountPaise: amountPaise ?? 0,
             type: TransactionType.needsReview,
             direction: direction ?? TransactionDirection.unknown,
             occurredAt: receivedAt,
+            accountHint: accountHint,
+            source: TransactionSource.sms,
+            confidence: ParseConfidence.low,
+            reviewStatus: ReviewStatus.pendingReview,
+            reviewReason: reason,
           ),
         );
         switch (saveResult) {
@@ -150,6 +147,8 @@ class DefaultSmsIngestionService implements SmsIngestionService {
     String? categoryId,
   }) {
     final type = overrideType ?? candidate.type;
+    final isReview =
+        type == TransactionType.needsReview || reviewReason != null;
     final input = TransactionInput(
       amountPaise: candidate.amountPaise,
       type: type,
@@ -157,6 +156,14 @@ class DefaultSmsIngestionService implements SmsIngestionService {
       merchantOrCounterparty: candidate.merchantOrCounterparty,
       occurredAt: candidate.occurredAt ?? receivedAt,
       categoryId: categoryId,
+      accountHint: candidate.accountHint,
+      referenceId: candidate.referenceId,
+      source: TransactionSource.sms,
+      confidence: candidate.confidence,
+      reviewStatus:
+          isReview ? ReviewStatus.pendingReview : ReviewStatus.notRequired,
+      reviewReason: reviewReason,
+      parserRuleId: candidate.parserRuleId,
     );
     return repository.addTransaction(input);
   }
