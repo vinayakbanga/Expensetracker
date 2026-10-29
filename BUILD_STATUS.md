@@ -81,7 +81,8 @@
 | Integer paise money arithmetic tests | ✅ Passed (8 test cases) |
 | Widget tests (Dashboard, Transactions, Review Queue) | ✅ Passed (6 test cases) |
 | **Total Automated Tests** | **✅ 38 passed / 0 failed** |
-| iOS capture POC | ❌ Not run — macOS + device required |
+| **Cloud macOS iOS Build (Codemagic CI)** | **✅ Passed (mac_mini_m2 runner)** |
+| iOS capture POC | ❌ Not run — physical device required |
 | SQLCipher compatibility | ❌ Not verified — plain SQLite for MVP |
 
 ---
