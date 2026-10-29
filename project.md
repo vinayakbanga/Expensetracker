@@ -201,6 +201,7 @@ d:\Expense tracker\paisalog\
    - [x] Drift and Riverpod code generation complete (`build_runner` — 119 outputs).
    - [x] Git repository initialized and pushed to GitHub (`vinayakbanga/Expensetracker`).
    - [x] Codemagic cloud macOS CI pipeline configured (`codemagic.yaml` with M2 Mac, Flutter stable, build & test).
+   - [x] iOS native project scaffolding generated (`ios/Runner.xcodeproj`, `Info.plist`, assets, schemes) and pushed to GitHub.
 
 2. **Domain & Business Logic**
    - [x] `Money` object with integer paise arithmetic and display formatting.
