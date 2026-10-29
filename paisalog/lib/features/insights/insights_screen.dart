@@ -212,32 +212,141 @@ class _InsightsBody extends ConsumerWidget {
         ),
 
         const SizedBox(height: PaisaSpacing.md),
-        // ── Coming soon placeholder ───────────────────────────────────────────
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(PaisaSpacing.lg),
-            child: Column(
-              children: [
-                const Icon(Icons.donut_small_outlined,
-                    size: 48, color: PaisaColors.textDisabled),
-                const SizedBox(height: PaisaSpacing.sm),
-                Text(
-                  'Category breakdown',
-                  style: PaisaTextStyles.body
-                      .copyWith(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: PaisaSpacing.xs),
-                Text(
-                  'Coming in the next increment — add transactions to populate.',
-                  style: PaisaTextStyles.bodySmall
-                      .copyWith(color: PaisaColors.textSecondary),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
+        // ── Category breakdown ───────────────────────────────────────────
+        _CategoryBreakdownCard(period: period),
       ],
+    );
+  }
+}
+
+class _CategoryBreakdownCard extends ConsumerWidget {
+  final MonthlyPeriod period;
+  const _CategoryBreakdownCard({required this.period});
+
+  Color _parseColor(String hex) {
+    try {
+      final clean = hex.replaceAll('#', '');
+      return Color(int.parse('FF$clean', radix: 16));
+    } catch (_) {
+      return PaisaColors.primary;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final breakdownAsync = ref.watch(categoryBreakdownProvider(period));
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(PaisaSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'EXPENSE BY CATEGORY',
+              style: PaisaTextStyles.sectionHeader
+                  .copyWith(color: PaisaColors.textSecondary),
+            ),
+            const SizedBox(height: PaisaSpacing.md),
+            breakdownAsync.when(
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(PaisaSpacing.md),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+              error: (_, __) => const Text('Could not load breakdown'),
+              data: (items) {
+                if (items.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.all(PaisaSpacing.md),
+                    child: Center(
+                      child: Text(
+                        'No expenses recorded for this month.',
+                        style: PaisaTextStyles.bodySmall
+                            .copyWith(color: PaisaColors.textSecondary),
+                      ),
+                    ),
+                  );
+                }
+
+                final pieSections = items.map((item) {
+                  final color = _parseColor(item.category.colorHex);
+                  final pct = (item.percentage * 100).round();
+                  return PieChartSectionData(
+                    color: color,
+                    value: item.totalPaise.toDouble(),
+                    title: pct >= 5 ? '$pct%' : '',
+                    radius: 40,
+                    titleStyle: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  );
+                }).toList();
+
+                return Column(
+                  children: [
+                    SizedBox(
+                      height: 180,
+                      child: PieChart(
+                        PieChartData(
+                          sections: pieSections,
+                          centerSpaceRadius: 36,
+                          sectionsSpace: 2,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: PaisaSpacing.md),
+                    const Divider(),
+                    ...items.map((item) {
+                      final color = _parseColor(item.category.colorHex);
+                      final pct = (item.percentage * 100).toStringAsFixed(1);
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: PaisaSpacing.xs,
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: PaisaSpacing.sm),
+                            Expanded(
+                              child: Text(
+                                item.category.name,
+                                style: PaisaTextStyles.body,
+                              ),
+                            ),
+                            Text(
+                              '$pct%  ',
+                              style: PaisaTextStyles.bodySmall
+                                  .copyWith(color: PaisaColors.textSecondary),
+                            ),
+                            AmountDisplay(
+                              paise: item.totalPaise,
+                              type: TransactionType.expense,
+                              showSign: false,
+                              style: PaisaTextStyles.body
+                                  .copyWith(fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

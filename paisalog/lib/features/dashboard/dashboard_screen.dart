@@ -33,6 +33,11 @@ class DashboardScreen extends ConsumerWidget {
         title: const Text('PaisaLog'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.psychology_outlined),
+            tooltip: 'SMS Simulator',
+            onPressed: () => context.push('/settings/simulator'),
+          ),
+          IconButton(
             icon: const Icon(Icons.add_circle_outline_rounded),
             tooltip: 'Add transaction',
             onPressed: () => context.push('/transactions/add'),

@@ -1,8 +1,8 @@
 # PaisaLog — Master Project Context, Specification & Status
 
 > **Single Source of Truth for Context, Architecture, Decisions, and Live Checklist**
-> Last updated: 2026-10-29 11:15 IST
-> Target Platform: iOS (iPhone 17 Pro Max) | Development Environment: Windows 11 + VS Code + Flutter 3.47.8
+> Last updated: 2026-10-29 12:05 IST
+> Target Platform: iOS (iPhone 17 Pro Max) & Web Preview | Development Environment: Windows 11 + VS Code + Flutter 3.47.8
 
 ---
 
@@ -161,13 +161,18 @@ d:\Expense tracker\paisalog\
 │   │       └── sms_parser.dart        # Deterministic regex parser with ignore guards
 │   ├── features\
 │   │   ├── dashboard\
-│   │   │   └── dashboard_screen.dart  # Home tab (net savings, cards, review banner, recent)
+│   │   │   └── dashboard_screen.dart  # Home tab (net savings, cards, review banner, simulator link)
 │   │   ├── insights\
-│   │   │   └── insights_screen.dart   # Insights tab (income vs expense bar, month nav)
+│   │   │   └── insights_screen.dart   # Insights tab (income vs expense bar, fl_chart category pie chart)
 │   │   ├── review_queue\
 │   │   │   └── review_queue_screen.dart # Review queue tab (ambiguous parses & resolution)
 │   │   ├── settings\
-│   │   │   └── settings_screen.dart   # Settings tab (accounts, categories, privacy, CSV)
+│   │   │   ├── settings_screen.dart   # Settings root hub
+│   │   │   ├── accounts_screen.dart   # Bank/card account manager
+│   │   │   ├── categories_screen.dart # Custom & system category manager
+│   │   │   ├── privacy_screen.dart    # Local-first security & App Lock
+│   │   │   ├── import_export_screen.dart # CSV statements import & export
+│   │   │   └── sms_simulator_screen.dart # In-app SMS testing & sandbox with 7 bank presets
 │   │   └── transactions\
 │   │       ├── transaction_detail_screen.dart # Full metadata view & delete action
 │   │       ├── transaction_editor_screen.dart # Add/edit form with integer validation
@@ -185,6 +190,7 @@ d:\Expense tracker\paisalog\
 │   │   └── sms_parser_test.dart       # 16 parser, paise precision, and boundary tests
 │   └── widgets\
 │       └── ui_screens_test.dart       # 6 UI widget tests for dashboard, transactions & review
+├── web\                               # Web preview scaffolding with sqlite3.wasm
 ├── analysis_options.yaml              # Code quality & float-money lint rules
 └── pubspec.yaml                       # Package dependencies & assets
 ```
@@ -202,7 +208,8 @@ d:\Expense tracker\paisalog\
    - [x] Git repository initialized and pushed to GitHub (`vinayakbanga/Expensetracker`).
    - [x] Codemagic cloud macOS CI pipeline configured (`codemagic.yaml` with M2 Mac, Flutter stable, build & test).
    - [x] iOS native project scaffolding generated (`ios/Runner.xcodeproj`, `Info.plist`, assets, schemes) and pushed to GitHub.
-   - [x] **Cloud iOS Build Succeeded on Codemagic:** Full CI pipeline passed (Flutter dependencies, Drift/Riverpod codegen, 38 automated tests, and iOS build).
+   - [x] **Cloud iOS Build Succeeded on Codemagic:** Full CI pipeline passed (Flutter dependencies, Drift/Riverpod codegen, 38 automated tests, and unsigned IPA build).
+   - [x] **Web Support & Cross-Platform Connection:** Conditional imports decoupled `dart:io` and native SQLite FFI (`web.dart` + `native.dart` via `sqlite3.wasm` and `drift_worker.js`). `flutter build web` succeeds with 0 errors.
 
 2. **Domain & Business Logic**
    - [x] `Money` object with integer paise arithmetic and display formatting.
@@ -216,13 +223,25 @@ d:\Expense tracker\paisalog\
    - [x] 5 Drift database tables with integer money columns.
    - [x] 11 pre-seeded system categories.
    - [x] Drift repositories supporting CRUD, search queries, and real-time reactive streams.
-   - [x] CSV Import/Export service with row validation and duplicate prevention.
+   - [x] Cross-platform file abstraction for CSV Import/Export.
 
 4. **UI & Design System**
    - [x] Full design system with Light and Dark modes.
    - [x] Declarative bottom navigation with `go_router` (4 tabs).
    - [x] 8 reusable UI components.
-   - [x] 7 screens (Dashboard, Transactions, Detail, Editor, Review Queue, Insights, Settings).
+   - [x] 12 complete screens & sub-screens:
+     - Dashboard (`/`)
+     - Transactions list (`/transactions`)
+     - Transaction detail (`/transactions/:id`)
+     - Transaction editor (`/transactions/add` & `/transactions/:id/edit`)
+     - Review queue (`/review`)
+     - Insights (`/insights`) with monthly trend & interactive `fl_chart` category breakdown
+     - Settings (`/settings`)
+     - Accounts management (`/settings/accounts`)
+     - Categories management (`/settings/categories`)
+     - Privacy & App Lock (`/settings/privacy`)
+     - CSV Import / Export with table preview (`/settings/import-export`)
+     - **SMS Simulator & Sandbox (`/settings/simulator`)** with 7 bank presets for live testing
 
 5. **Automated Testing Suite (38 / 38 Tests Passing)**
    - [x] 16 SMS Parser & Money tests (`sms_parser_test.dart`).
@@ -233,15 +252,12 @@ d:\Expense tracker\paisalog\
 
 ## 8. Active & Next Priorities
 
-- [ ] **Task 1: Complete Settings Sub-Screens**
-  - Accounts management (`/settings/accounts`)
-  - Categories management (`/settings/categories`)
-  - App Lock / biometric preferences (`/settings/privacy`)
-  - CSV Import/Export UI with preview dialog (`/settings/import-export`)
-- [ ] **Task 2: Implement Category Breakdown Chart in Insights**
-  - Add interactive pie chart using `fl_chart`.
-- [ ] **Task 3: In-App SMS Testing & Ingestion Panel**
-  - Provide an on-device/desktop testing interface to paste synthetic SMS strings and verify live parsing, deduplication, and database insertion.
+- [x] **Task 1: Complete Settings Sub-Screens** (Accounts, Categories, Privacy, CSV Import/Export)
+- [x] **Task 2: Implement Category Breakdown Chart in Insights** (`fl_chart` pie chart with legend and percentages)
+- [x] **Task 3: In-App SMS Testing & Ingestion Sandbox** (Interactive simulator with HDFC, SBI, ICICI, OTP presets)
+- [ ] **Task 4: Try the App Live**
+  - Run `flutter run -d chrome` on Windows to interactively test all features, try presets in the SMS Simulator, add accounts/categories, and inspect ledger updates.
+  - Test the unsigned IPA on physical iPhone or via Codemagic artifacts.
 
 ---
 

@@ -11,6 +11,11 @@ import '../features/transactions/transaction_editor_screen.dart';
 import '../features/review_queue/review_queue_screen.dart';
 import '../features/insights/insights_screen.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/settings/accounts_screen.dart';
+import '../features/settings/categories_screen.dart';
+import '../features/settings/privacy_screen.dart';
+import '../features/settings/import_export_screen.dart';
+import '../features/settings/sms_simulator_screen.dart';
 
 final class AppRoutes {
   static const home = '/';
@@ -25,6 +30,7 @@ final class AppRoutes {
   static const settingsCategories = '/settings/categories';
   static const settingsPrivacy = '/settings/privacy';
   static const settingsImportExport = '/settings/import-export';
+  static const settingsSimulator = '/settings/simulator';
 }
 
 final appRouter = GoRouter(
@@ -90,6 +96,28 @@ final appRouter = GoRouter(
             GoRoute(
               path: AppRoutes.settings,
               builder: (ctx, s) => const SettingsScreen(),
+              routes: [
+                GoRoute(
+                  path: 'accounts',
+                  builder: (ctx, s) => const AccountsScreen(),
+                ),
+                GoRoute(
+                  path: 'categories',
+                  builder: (ctx, s) => const CategoriesScreen(),
+                ),
+                GoRoute(
+                  path: 'privacy',
+                  builder: (ctx, s) => const PrivacyScreen(),
+                ),
+                GoRoute(
+                  path: 'import-export',
+                  builder: (ctx, s) => const ImportExportScreen(),
+                ),
+                GoRoute(
+                  path: 'simulator',
+                  builder: (ctx, s) => const SmsSimulatorScreen(),
+                ),
+              ],
             ),
           ],
         ),

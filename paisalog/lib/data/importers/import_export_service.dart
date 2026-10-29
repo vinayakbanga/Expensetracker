@@ -1,12 +1,12 @@
 /// CSV import/export service implementation.
 library;
 
-import 'dart:io';
 import 'package:csv/csv.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../domain/models/models.dart';
 import '../../domain/services/service_contracts.dart';
+import 'platform_file.dart';
 
 class DefaultImportExportService implements ImportExportService {
   final TransactionRepository repository;
@@ -44,14 +44,11 @@ class DefaultImportExportService implements ImportExportService {
 
       final csv = const ListToCsvConverter().convert(rows);
 
-      // Write to temp file; caller (share_plus) handles destination
-      final tmpDir = Directory.systemTemp;
-      final file = File('${tmpDir.path}/paisalog_export_${DateTime.now().millisecondsSinceEpoch}.csv');
-      await file.writeAsString(csv, encoding: const Utf8Codec());
+      final filePath = await PlatformFileHelper.writeTempCsv(csv);
 
       return Success(ExportSummary(
         rowsExported: txs.length,
-        filePath: file.path,
+        filePath: filePath,
       ));
     } catch (e) {
       return Failure(AppError(AppErrorKind.exportFailure, 'Export failed'));
@@ -61,11 +58,10 @@ class DefaultImportExportService implements ImportExportService {
   @override
   Future<Result<ImportPreview>> previewCsvImport(String filePath) async {
     try {
-      final file = File(filePath);
-      if (!file.existsSync()) {
+      final content = await PlatformFileHelper.readString(filePath);
+      if (content == null) {
         return Failure(AppError(AppErrorKind.importFailure, 'File not found'));
       }
-      final content = await file.readAsString();
       final rows = const CsvToListConverter().convert(content);
 
       if (rows.isEmpty) {

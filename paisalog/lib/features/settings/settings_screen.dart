@@ -58,7 +58,17 @@ class SettingsScreen extends ConsumerWidget {
             onTap: () => _showExportWarning(context),
           ),
 
-          _SectionHeader(title: 'SMS CAPTURE'),
+          _SectionHeader(title: 'SMS CAPTURE & TESTING'),
+          _SettingsTile(
+            icon: Icons.psychology_outlined,
+            title: 'SMS Simulator (Sandbox)',
+            subtitle: 'Paste SMS or try presets to test parsing & ledger',
+            trailing: _StatusBadge(
+              label: 'Interactive',
+              color: PaisaColors.income,
+            ),
+            onTap: () => context.push('/settings/simulator'),
+          ),
           _SettingsTile(
             icon: Icons.sms_outlined,
             title: 'iOS Shortcuts Setup',

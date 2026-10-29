@@ -4,10 +4,7 @@
 library;
 
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
-import 'dart:io';
+import 'connection/connection.dart' as impl;
 
 import 'tables.dart';
 
@@ -21,7 +18,7 @@ part 'app_database.g.dart';
   UserCorrectionsTable,
 ])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  AppDatabase() : super(impl.connect());
 
   /// For testing — pass an in-memory connection.
   AppDatabase.forTesting(super.executor);
@@ -127,17 +124,5 @@ class AppDatabase extends _$AppDatabase {
       await into(categoriesTable).insertOnConflictUpdate(cat);
     }
   }
-}
-
-LazyDatabase _openConnection() {
-  return LazyDatabase(() async {
-    final dbFolder = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dbFolder.path, 'paisalog.db'));
-    return NativeDatabase(file);
-    // NOTE: SQLCipher upgrade tracked in DECISIONS.md D-003.
-    // Once flutter_sqlcipher is verified on iOS, replace with:
-    // return NativeDatabase(file, setup: (db) { db.execute("PRAGMA key='...'"); });
-    // Key must come from flutter_secure_storage / Keychain, NEVER hardcoded.
-  });
 }
 

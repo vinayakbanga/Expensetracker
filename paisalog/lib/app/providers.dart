@@ -9,10 +9,14 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../data/database/app_database.dart';
 import '../data/repositories/transaction_repository.dart';
+import '../data/repositories/account_category_repositories.dart';
+import '../data/repositories/security_service.dart';
+import '../data/importers/import_export_service.dart';
 import '../domain/models/models.dart';
 import '../domain/services/service_contracts.dart';
 import '../domain/services/sms_parser.dart';
 import '../domain/services/domain_services.dart';
+import '../domain/services/sms_ingestion_service.dart';
 
 part 'providers.g.dart';
 
@@ -27,6 +31,24 @@ AppDatabase appDatabase(Ref ref) => AppDatabase();
 TransactionRepository transactionRepository(Ref ref) {
   return DriftTransactionRepository(ref.watch(appDatabaseProvider));
 }
+
+final accountRepositoryProvider = Provider<AccountRepository>((ref) {
+  return DriftAccountRepository(ref.watch(appDatabaseProvider));
+});
+
+final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
+  return DriftCategoryRepository(ref.watch(appDatabaseProvider));
+});
+
+final securityServiceProvider = Provider<SecurityService>((ref) {
+  return DefaultSecurityService();
+});
+
+final importExportServiceProvider = Provider<ImportExportService>((ref) {
+  return DefaultImportExportService(
+    repository: ref.watch(transactionRepositoryProvider),
+  );
+});
 
 // ─── Services ────────────────────────────────────────────────────────────────
 
@@ -46,6 +68,83 @@ DeduplicationService deduplicationService(Ref ref) {
 TransferDetectionService transferDetectionService(Ref ref) {
   return DefaultTransferDetectionService();
 }
+
+final categorizationServiceProvider = Provider<CategorizationService>((ref) {
+  return DefaultCategorizationService(
+    categoryRepository: ref.watch(categoryRepositoryProvider),
+  );
+});
+
+final smsIngestionServiceProvider = Provider<SmsIngestionService>((ref) {
+  return DefaultSmsIngestionService(
+    parser: ref.watch(transactionParserProvider),
+    deduplicationService: ref.watch(deduplicationServiceProvider),
+    transferDetectionService: ref.watch(transferDetectionServiceProvider),
+    categorizationService: ref.watch(categorizationServiceProvider),
+    repository: ref.watch(transactionRepositoryProvider),
+    accountRepository: ref.watch(accountRepositoryProvider),
+  );
+});
+
+final accountsStreamProvider = StreamProvider<List<Account>>((ref) {
+  return ref.watch(accountRepositoryProvider).watchAccounts();
+});
+
+final categoriesFutureProvider = FutureProvider<List<Category>>((ref) {
+  return ref.watch(categoryRepositoryProvider).listCategories();
+});
+
+final categoryBreakdownProvider =
+    FutureProvider.family<List<CategoryBreakdownItem>, MonthlyPeriod>(
+        (ref, period) async {
+  final repo = ref.watch(transactionRepositoryProvider);
+  final catRepo = ref.watch(categoryRepositoryProvider);
+
+  final from = DateTime(period.year, period.month, 1);
+  final to = DateTime(period.year, period.month + 1, 0, 23, 59, 59);
+
+  final txs = await repo.getTransactions(
+    TransactionFilters(
+      fromDate: from,
+      toDate: to,
+      type: TransactionType.expense,
+    ),
+  );
+
+  final categories = await catRepo.listCategories();
+  final catMap = {for (final c in categories) c.id: c};
+
+  final Map<String, int> expenseByCat = {};
+  int grandTotalExpense = 0;
+
+  for (final tx in txs) {
+    final catId = tx.categoryId ?? 'other';
+    expenseByCat[catId] = (expenseByCat[catId] ?? 0) + tx.amountPaise;
+    grandTotalExpense += tx.amountPaise;
+  }
+
+  if (grandTotalExpense == 0) return const [];
+
+  final List<CategoryBreakdownItem> items = [];
+  expenseByCat.forEach((catId, total) {
+    final cat = catMap[catId] ??
+        Category(
+          id: catId,
+          name: catId == 'other' ? 'Other' : catId,
+          iconKey: 'more_horiz',
+          colorHex: '#94A3B8',
+        );
+    items.add(CategoryBreakdownItem(
+      category: cat,
+      totalPaise: total,
+      transactionCount: txs.where((t) => (t.categoryId ?? 'other') == catId).length,
+      percentage: total / grandTotalExpense,
+    ));
+  });
+
+  items.sort((a, b) => b.totalPaise.compareTo(a.totalPaise));
+  return items;
+});
 
 // ─── Dashboard / Analytics ────────────────────────────────────────────────────
 
