@@ -181,6 +181,15 @@ class DefaultCategorizationService implements CategorizationService {
 
   @override
   Future<CategorySuggestion> suggestCategory(ParsedCandidate candidate) async {
+    // 0. Income / Salary detection
+    if (candidate.type == TransactionType.income) {
+      return const CategorySuggestion(
+        categoryId: 'income_salary',
+        reason: 'Income transaction categorized as Salary',
+        confidence: 0.9,
+      );
+    }
+
     final merchant = candidate.merchantOrCounterparty ?? '';
 
     // 1. User correction overrides

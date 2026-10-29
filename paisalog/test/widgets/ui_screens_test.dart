@@ -179,7 +179,7 @@ void main() {
       expect(find.text('Review Queue'), findsOneWidget);
       expect(find.text('NEEDS REVIEW'), findsOneWidget);
       expect(find.textContaining('unsupported_template'), findsOneWidget);
-      expect(find.text('Correct'), findsOneWidget);
+      expect(find.text('Resolve'), findsOneWidget);
     });
 
     testWidgets('shows empty state when no items need review', (tester) async {

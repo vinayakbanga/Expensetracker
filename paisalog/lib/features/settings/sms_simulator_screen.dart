@@ -39,7 +39,12 @@ class _SmsSimulatorScreenState extends ConsumerState<SmsSimulatorScreen> {
       'text':
           'INR 75,000.00 credited to A/C **1234 on 01-OCT-26 by TECH_CORP_PVT_LTD. Bal: INR 1,50,000.00',
     },
-    'Credit Card Purchase': {
+    'Credit Card Purchase (Axis)': {
+      'sender': 'AXISBK',
+      'text':
+          'Alert: INR 1,299.00 spent on your Axis Bank Credit Card ending 9876 at AMAZON INDIA on 26-OCT-26. Avail Limit: INR 98,701.00',
+    },
+    'Credit Card Purchase (ICICI)': {
       'sender': 'ICICIB',
       'text':
           'Alert: INR 1,299.00 spent on your Credit Card ending 9876 at AMAZON INDIA on 26-OCT-26. Avail Limit: 98,701.00',

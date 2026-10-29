@@ -181,7 +181,7 @@ final List<SmsParserRule> defaultParserRules = [
       caseSensitive: false,
     ),
     accountHintPattern: RegExp(
-      r'[Cc]ard\s*[xX*]{0,8}(\d{4})',
+      r'(?:[Cc]ard\s*(?:ending\s*)?|[xX*]{0,8})([0-9]{4})\b',
       caseSensitive: false,
     ),
     ignorePatterns: [

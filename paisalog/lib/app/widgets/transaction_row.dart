@@ -73,11 +73,30 @@ class TransactionRow extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    _formatDate(transaction.occurredAt),
-                    style: PaisaTextStyles.bodySmall.copyWith(
-                      color: PaisaColors.textSecondary,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        _formatDate(transaction.occurredAt),
+                        style: PaisaTextStyles.bodySmall.copyWith(
+                          color: PaisaColors.textSecondary,
+                        ),
+                      ),
+                      if (transaction.accountHint != null) ...[
+                        Text(
+                          ' • ',
+                          style: PaisaTextStyles.bodySmall.copyWith(
+                            color: PaisaColors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          '••••${transaction.accountHint}',
+                          style: PaisaTextStyles.bodySmall.copyWith(
+                            color: PaisaColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),

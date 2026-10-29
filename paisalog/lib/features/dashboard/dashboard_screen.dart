@@ -89,6 +89,11 @@ class DashboardScreen extends ConsumerWidget {
               ),
             ),
 
+            // ── Card & Account Spend Breakdown ────────────────────────────────
+            SliverToBoxAdapter(
+              child: _AccountSpendSection(period: period),
+            ),
+
             // ── Recent transactions header ────────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
@@ -257,6 +262,132 @@ class _SummarySection extends StatelessWidget {
                   isLoading: isLoading,
                 ),
               ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Account & Card Spending Section ──────────────────────────────────────────
+
+class _AccountSpendSection extends ConsumerWidget {
+  final MonthlyPeriod period;
+  const _AccountSpendSection({required this.period});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final accountSpendAsync = ref.watch(accountSpendingSummaryProvider(period));
+
+    return accountSpendAsync.when(
+      data: (summaries) {
+        if (summaries.isEmpty) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: PaisaSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: PaisaSpacing.sm, bottom: PaisaSpacing.sm),
+                child: Text(
+                  'CARD & ACCOUNT SPEND',
+                  style: PaisaTextStyles.sectionHeader.copyWith(
+                    color: PaisaColors.textSecondary,
+                  ),
+                ),
+              ),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: PaisaSpacing.xs),
+                  child: Column(
+                    children: [
+                      for (int i = 0; i < summaries.length; i++) ...[
+                        _AccountSpendRow(summary: summaries[i]),
+                        if (i < summaries.length - 1)
+                          const Divider(
+                            indent: PaisaSpacing.md,
+                            endIndent: PaisaSpacing.md,
+                            height: 1,
+                          ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+}
+
+class _AccountSpendRow extends StatelessWidget {
+  final AccountSpendingSummary summary;
+  const _AccountSpendRow({required this.summary});
+
+  @override
+  Widget build(BuildContext context) {
+    final isCreditCard = summary.type == AccountType.creditCard ||
+        (summary.accountHint != null && summary.accountName.toLowerCase().contains('card'));
+
+    final icon = isCreditCard ? Icons.credit_card_rounded : Icons.account_balance_rounded;
+    final iconColor = isCreditCard ? Colors.purple : PaisaColors.primary;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: PaisaSpacing.md,
+        vertical: PaisaSpacing.sm + 2,
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: iconColor.withOpacity(0.12),
+            radius: 18,
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: PaisaSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  summary.accountName,
+                  style: PaisaTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  isCreditCard ? 'Credit Card Outflow' : 'Bank Outflow',
+                  style: PaisaTextStyles.bodySmall.copyWith(
+                    color: PaisaColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                summary.totalExpense.toDisplayString(),
+                style: PaisaTextStyles.amountSmall.copyWith(
+                  color: summary.totalExpensePaise > 0
+                      ? PaisaColors.expense
+                      : PaisaColors.textSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (summary.totalIncomePaise > 0)
+                Text(
+                  '+${summary.totalIncome.toDisplayString()}',
+                  style: PaisaTextStyles.caption.copyWith(
+                    color: PaisaColors.income,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
             ],
           ),
         ],

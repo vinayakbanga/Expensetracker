@@ -146,6 +146,76 @@ final categoryBreakdownProvider =
   return items;
 });
 
+// ─── Account / Card Breakdown ──────────────────────────────────────────────────
+
+final accountSpendingSummaryProvider =
+    FutureProvider.family<List<AccountSpendingSummary>, MonthlyPeriod>(
+        (ref, period) async {
+  final repo = ref.watch(transactionRepositoryProvider);
+  final accountRepo = ref.watch(accountRepositoryProvider);
+
+  final from = DateTime(period.year, period.month, 1);
+  final to = DateTime(period.year, period.month + 1, 0, 23, 59, 59);
+
+  final txs = await repo.getTransactions(
+    TransactionFilters(fromDate: from, toDate: to),
+  );
+
+  final accounts = await accountRepo.listAccounts();
+  // Map accountHint to Account
+  final Map<String, Account> hintToAccount = {};
+  for (final a in accounts) {
+    if (a.maskedIdentifier != null && a.maskedIdentifier!.isNotEmpty) {
+      hintToAccount[a.maskedIdentifier!] = a;
+    }
+  }
+
+  // Aggregate by account hint / source
+  final Map<String, int> expenseMap = {};
+  final Map<String, int> incomeMap = {};
+  final Map<String, int> countMap = {};
+
+  for (final tx in txs) {
+    final hint = tx.accountHint ?? 'Cash / Other';
+    if (tx.type == TransactionType.expense) {
+      expenseMap[hint] = (expenseMap[hint] ?? 0) + tx.amountPaise;
+    } else if (tx.type == TransactionType.income) {
+      incomeMap[hint] = (incomeMap[hint] ?? 0) + tx.amountPaise;
+    }
+    countMap[hint] = (countMap[hint] ?? 0) + 1;
+  }
+
+  final List<AccountSpendingSummary> summaries = [];
+  final allHints = {...expenseMap.keys, ...incomeMap.keys};
+
+  for (final hint in allHints) {
+    final linkedAccount = hintToAccount[hint];
+    final name = linkedAccount != null
+        ? linkedAccount.nickname
+        : (hint == 'Cash / Other' ? 'Cash / Direct' : 'Account ••••$hint');
+    final type = linkedAccount != null
+        ? linkedAccount.type
+        : (hint.toLowerCase().contains('card')
+            ? AccountType.creditCard
+            : AccountType.bank);
+
+    summaries.add(
+      AccountSpendingSummary(
+        accountName: name,
+        type: type,
+        accountHint: hint == 'Cash / Other' ? null : hint,
+        totalExpensePaise: expenseMap[hint] ?? 0,
+        totalIncomePaise: incomeMap[hint] ?? 0,
+        count: countMap[hint] ?? 0,
+      ),
+    );
+  }
+
+  // Sort: cards & accounts with highest expense first
+  summaries.sort((a, b) => b.totalExpensePaise.compareTo(a.totalExpensePaise));
+  return summaries;
+});
+
 // ─── Dashboard / Analytics ────────────────────────────────────────────────────
 
 @riverpod

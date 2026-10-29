@@ -520,6 +520,28 @@ class SpendingTrendPoint {
   Money get totalExpenses => Money(totalExpensePaise);
 }
 
+/// Spend breakdown by payment method / account (e.g. Axis Card vs Main Bank)
+class AccountSpendingSummary {
+  final String accountName;
+  final AccountType type;
+  final String? accountHint;
+  final int totalExpensePaise;
+  final int totalIncomePaise;
+  final int count;
+
+  const AccountSpendingSummary({
+    required this.accountName,
+    required this.type,
+    this.accountHint,
+    required this.totalExpensePaise,
+    required this.totalIncomePaise,
+    required this.count,
+  });
+
+  Money get totalExpense => Money(totalExpensePaise);
+  Money get totalIncome => Money(totalIncomePaise);
+}
+
 // ─── Result types ─────────────────────────────────────────────────────────────
 
 /// Generic typed result; prevents raw exceptions reaching the UI.
