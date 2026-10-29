@@ -240,5 +240,49 @@ void main() {
       expect(c.type, equals(TransactionType.expense));
     });
   });
+
+  group('Date extraction', () {
+    test('DD-MMM-YY format: 26-OCT-26 → 2026-10-26', () {
+      const sms =
+          'Alert: INR 1,299.00 spent on your Credit Card ending 9876 at AMAZON INDIA on 26-OCT-26.';
+      final result = parser.parse(sms, ctx(sender: 'ICICIB'));
+      expect(result, isA<ParsedCandidate>());
+      final c = result as ParsedCandidate;
+      expect(c.occurredAt, isNotNull);
+      expect(c.occurredAt!.year, equals(2026));
+      expect(c.occurredAt!.month, equals(10));
+      expect(c.occurredAt!.day, equals(26));
+    });
+
+    test('DD-MMM-YYYY format: 25-OCT-2026 → 2026-10-25', () {
+      const sms = 'Your A/c XX1234 debited INR 500 at MERCHANT_A on 25-OCT-2026.';
+      final result = parser.parse(sms, ctx());
+      expect(result, isA<ParsedCandidate>());
+      final c = result as ParsedCandidate;
+      expect(c.occurredAt, isNotNull);
+      expect(c.occurredAt!.year, equals(2026));
+      expect(c.occurredAt!.month, equals(10));
+      expect(c.occurredAt!.day, equals(25));
+    });
+
+    test('DD/MM/YYYY format extracted correctly', () {
+      const sms = 'A/c XX1234 debited INR 200 on 01/09/2026. Ref REF_A.';
+      final result = parser.parse(sms, ctx());
+      expect(result, isA<ParsedCandidate>());
+      final c = result as ParsedCandidate;
+      expect(c.occurredAt, isNotNull);
+      expect(c.occurredAt!.year, equals(2026));
+      expect(c.occurredAt!.month, equals(9));
+      expect(c.occurredAt!.day, equals(1));
+    });
+
+    test('SMS with no date → occurredAt is null (will fallback to receivedAt)', () {
+      const sms = 'Your A/c XX1234 is debited by INR 250.00 at MERCHANT_A. Ref REF_X.';
+      final result = parser.parse(sms, ctx());
+      expect(result, isA<ParsedCandidate>());
+      final c = result as ParsedCandidate;
+      expect(c.occurredAt, isNull);
+    });
+  });
 }
 

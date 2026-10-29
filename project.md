@@ -1,7 +1,7 @@
 # PaisaLog — Master Project Context, Specification & Status
 
 > **Single Source of Truth for Context, Architecture, Decisions, and Live Checklist**
-> Last updated: 2026-10-29 12:05 IST
+> Last updated: 2026-10-29 13:05 IST
 > Target Platform: iOS (iPhone 17 Pro Max) & Web Preview | Development Environment: Windows 11 + VS Code + Flutter 3.47.8
 
 ---
@@ -243,11 +243,17 @@ d:\Expense tracker\paisalog\
      - CSV Import / Export with table preview (`/settings/import-export`)
      - **SMS Simulator & Sandbox (`/settings/simulator`)** with 7 bank presets for live testing
 
-5. **Automated Testing Suite (40 / 40 Tests Passing)**
-   - [x] 18 SMS Parser & Money tests (`sms_parser_test.dart` including CC & UPI expense sanity tests).
+5. **Automated Testing Suite (44 / 44 Tests Passing)**
+   - [x] 22 SMS Parser, Date Extraction & Money tests (`sms_parser_test.dart` including CC & UPI expense sanity tests + 4 date format extraction tests).
    - [x] 8 Deduplication & Transfer tests (`deduplication_test.dart`).
    - [x] 6 Screen Widget tests (`ui_screens_test.dart`).
    - [x] Resolved pending review issue: decoupled candidate rule evaluation, enriched TransactionInput metadata persistence (referenceId, accountHint), refined transfer keyword detection for payments, and fixed review resolution in updates.
+
+6. **Recent Refinements (Latest Batch)**
+   - [x] **SMS Date Extraction:** Added regex pattern support for `DD-MMM-YY`, `DD-MMM-YYYY`, `DD/MM/YYYY`, and `on DD MMM (YYYY)` formats with boundary validation, replacing fallback ingestion timestamps when dates are available in SMS.
+   - [x] **Dead Code Cleanup:** Removed unused legacy `_buildReviewTransaction` stub from `DefaultSmsIngestionService`.
+   - [x] **Month Grouping in Transactions Screen:** Grouped transactions by calendar month with clean headers and dividers.
+   - [x] **Interactive Review Queue Quick-Resolve:** Added modal bottom sheet allowing users to 1-tap resolve pending review transactions to Expense, Income, or Transfer without having to enter the full editor.
 
 ---
 
@@ -256,9 +262,10 @@ d:\Expense tracker\paisalog\
 - [x] **Task 1: Complete Settings Sub-Screens** (Accounts, Categories, Privacy, CSV Import/Export)
 - [x] **Task 2: Implement Category Breakdown Chart in Insights** (`fl_chart` pie chart with legend and percentages)
 - [x] **Task 3: In-App SMS Testing & Ingestion Sandbox** (Interactive simulator with HDFC, SBI, ICICI, OTP presets)
-- [ ] **Task 4: Try the App Live**
-  - Run `flutter run -d chrome` on Windows to interactively test all features, try presets in the SMS Simulator, add accounts/categories, and inspect ledger updates.
-  - Test the unsigned IPA on physical iPhone or via Codemagic artifacts.
+- [x] **Task 4: Parser Date Extraction & Quick Review Resolution Flow**
+- [ ] **Task 5: Try the App Live & Verify End-to-End**
+  - Run `flutter run -d chrome` on Windows to test interactive flow, quick resolve, and SMS simulator.
+  - Push latest changes to GitHub for Codemagic CI build.
 
 ---
 

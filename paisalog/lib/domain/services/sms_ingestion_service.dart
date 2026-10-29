@@ -167,28 +167,5 @@ class DefaultSmsIngestionService implements SmsIngestionService {
     );
     return repository.addTransaction(input);
   }
-
-  Future<Transaction> _buildReviewTransaction({
-    int? amountPaise,
-    TransactionDirection? direction,
-    String? accountHint,
-    required String reason,
-    required DateTime receivedAt,
-  }) async {
-    return Transaction(
-      id: 'review_${receivedAt.millisecondsSinceEpoch}',
-      amountPaise: amountPaise ?? 0,
-      type: TransactionType.needsReview,
-      direction: direction ?? TransactionDirection.unknown,
-      occurredAt: receivedAt,
-      accountHint: accountHint,
-      source: TransactionSource.sms,
-      confidence: ParseConfidence.low,
-      reviewReason: reason,
-      reviewStatus: ReviewStatus.pendingReview,
-      createdAt: receivedAt,
-      updatedAt: receivedAt,
-    );
-  }
 }
 

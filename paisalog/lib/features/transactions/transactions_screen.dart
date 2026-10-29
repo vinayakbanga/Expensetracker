@@ -1,9 +1,10 @@
-/// Transactions list screen with search, filters, and live updates.
+/// Transactions list screen with search, filters, month grouping, and live updates.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../app/providers.dart';
 import '../../app/theme.dart';
@@ -11,6 +12,36 @@ import '../../app/widgets/empty_state.dart';
 import '../../app/widgets/loading_state.dart';
 import '../../app/widgets/transaction_row.dart';
 import '../../domain/models/models.dart';
+
+// ─── Month grouping helpers ───────────────────────────────────────────────────
+
+class _MonthGroup {
+  final String label;     // e.g. "October 2026"
+  final List<Transaction> transactions;
+  _MonthGroup(this.label, this.transactions);
+}
+
+/// Groups a flat list of transactions by calendar month (most recent first).
+List<_MonthGroup> _groupByMonth(List<Transaction> txs) {
+  if (txs.isEmpty) return [];
+  final map = <String, List<Transaction>>{};
+  final labelOf = <String, String>{};
+  final fmt = DateFormat('MMMM yyyy');
+
+  for (final tx in txs) {
+    final d = tx.occurredAt;
+    final key = '${d.year}-${d.month.toString().padLeft(2, '0')}';
+    labelOf.putIfAbsent(key, () => fmt.format(d));
+    map.putIfAbsent(key, () => []).add(tx);
+  }
+
+  final sortedKeys = map.keys.toList()..sort((a, b) => b.compareTo(a));
+  return sortedKeys
+      .map((k) => _MonthGroup(labelOf[k]!, map[k]!))
+      .toList();
+}
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
@@ -133,7 +164,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
           const Divider(height: 1),
 
-          // ── Transaction list ────────────────────────────────────────────────
+          // ── Transaction list with month headers ─────────────────────────────
           Expanded(
             child: txAsync.when(
               data: (txs) {
@@ -142,15 +173,37 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     onAdd: () => context.push('/transactions/add'),
                   );
                 }
-                return ListView.separated(
-                  itemCount: txs.length,
-                  separatorBuilder: (_, __) => const Divider(
-                    indent: PaisaSpacing.md,
-                    endIndent: PaisaSpacing.md,
-                    height: 1,
-                  ),
-                  itemBuilder: (_, i) =>
-                      TransactionRow(transaction: txs[i]),
+                final groups = _groupByMonth(txs);
+                // Build a flat index list: each item is either a header or a tx row.
+                // Header items are strings; tx items are Transactions.
+                final items = <Object>[];
+                for (final g in groups) {
+                  items.add(g.label); // month header sentinel
+                  items.addAll(g.transactions);
+                }
+                return ListView.builder(
+                  itemCount: items.length,
+                  itemBuilder: (ctx, i) {
+                    final item = items[i];
+                    if (item is String) {
+                      return _MonthHeader(label: item);
+                    }
+                    final tx = item as Transaction;
+                    final isLast = i == items.length - 1 ||
+                        items[i + 1] is String;
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TransactionRow(transaction: tx),
+                        if (!isLast)
+                          const Divider(
+                            indent: PaisaSpacing.md,
+                            endIndent: PaisaSpacing.md,
+                            height: 1,
+                          ),
+                      ],
+                    );
+                  },
                 );
               },
               loading: () => const LoadingState(message: 'Loading transactions…'),
@@ -164,6 +217,32 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
   }
 }
+
+// ─── Month header widget ──────────────────────────────────────────────────────
+
+class _MonthHeader extends StatelessWidget {
+  final String label;
+  const _MonthHeader({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        PaisaSpacing.md, PaisaSpacing.lg, PaisaSpacing.md, PaisaSpacing.xs,
+      ),
+      child: Text(
+        label,
+        style: PaisaTextStyles.label.copyWith(
+          color: PaisaColors.textSecondary,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Filter chip ──────────────────────────────────────────────────────────────
 
 class _FilterChip extends StatelessWidget {
   final String label;

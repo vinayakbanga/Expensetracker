@@ -289,7 +289,7 @@ class DefaultTransactionParser implements TransactionParser {
         type: type,
         direction: direction,
         merchantOrCounterparty: merchant,
-        occurredAt: null, // TODO: date extraction in v2
+        occurredAt: _extractDate(normalised, context.receivedAt),
         accountHint: acct,
         referenceId: ref,
         confidence: _confidence(amount, direction, merchant),
@@ -332,6 +332,99 @@ class DefaultTransactionParser implements TransactionParser {
       if (paiseVal != null) paise += paiseVal;
     }
     return paise > 0 ? paise : null;
+  }
+
+  // ── Date Extraction ────────────────────────────────────────────────────────
+
+  static final _monthNames = {
+    'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+    'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+  };
+
+  /// Attempts to extract a transaction date from the SMS body.
+  ///
+  /// Supports formats commonly seen in Indian bank SMS:
+  ///  - DD-MMM-YY / DD-MMM-YYYY  (e.g. 26-OCT-26, 26-OCT-2026)
+  ///  - DD/MM/YYYY or DD/MM/YY
+  ///  - YYYY-MM-DD  (ISO)
+  ///  - "on DD MMM" / "on DD MMM YYYY"
+  ///
+  /// Returns null when no date is found or the parsed value is invalid.
+  DateTime? _extractDate(String text, DateTime receivedAt) {
+    // ── Pattern 1: DD-MMM-YY(YY)  e.g. 26-OCT-26 or 26-OCT-2026 ──
+    final p1 = RegExp(
+      r'\b(\d{1,2})[/-]([A-Za-z]{3})[/-](\d{2,4})\b',
+      caseSensitive: false,
+    );
+    final m1 = p1.firstMatch(text);
+    if (m1 != null) {
+      final day = int.tryParse(m1.group(1)!);
+      final mon = _monthNames[m1.group(2)!.toLowerCase()];
+      var year = int.tryParse(m1.group(3)!);
+      if (day != null && mon != null && year != null) {
+        if (year < 100) year += 2000; // 26 → 2026
+        return _safeDate(year, mon, day);
+      }
+    }
+
+    // ── Pattern 2: DD/MM/YYYY or DD/MM/YY ──
+    final p2 = RegExp(r'\b(\d{1,2})/(\d{1,2})/(\d{2,4})\b');
+    final m2 = p2.firstMatch(text);
+    if (m2 != null) {
+      final day = int.tryParse(m2.group(1)!);
+      final mon = int.tryParse(m2.group(2)!);
+      var year = int.tryParse(m2.group(3)!);
+      if (day != null && mon != null && year != null) {
+        if (year < 100) year += 2000;
+        return _safeDate(year, mon, day);
+      }
+    }
+
+    // ── Pattern 3: ISO  YYYY-MM-DD ──
+    final p3 = RegExp(r'\b(\d{4})-(\d{2})-(\d{2})\b');
+    final m3 = p3.firstMatch(text);
+    if (m3 != null) {
+      final year = int.tryParse(m3.group(1)!);
+      final mon  = int.tryParse(m3.group(2)!);
+      final day  = int.tryParse(m3.group(3)!);
+      if (year != null && mon != null && day != null) {
+        return _safeDate(year, mon, day);
+      }
+    }
+
+    // ── Pattern 4: "on DD MMM" or "on DD MMM YYYY" ──
+    final p4 = RegExp(
+      r'\bon\s+(\d{1,2})\s+([A-Za-z]{3})(?:\s+(\d{4}))?\b',
+      caseSensitive: false,
+    );
+    final m4 = p4.firstMatch(text);
+    if (m4 != null) {
+      final day  = int.tryParse(m4.group(1)!);
+      final mon  = _monthNames[m4.group(2)!.toLowerCase()];
+      final year = m4.group(3) != null
+          ? int.tryParse(m4.group(3)!)
+          : receivedAt.year;
+      if (day != null && mon != null && year != null) {
+        return _safeDate(year, mon, day);
+      }
+    }
+
+    return null; // no date found — caller uses receivedAt
+  }
+
+  /// Returns a valid [DateTime] at midnight local time, or null if out-of-range.
+  DateTime? _safeDate(int year, int month, int day) {
+    try {
+      if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+      final dt = DateTime(year, month, day);
+      // Reject obviously wrong years (before 2000 or more than 1 day in the future)
+      if (dt.year < 2000 || dt.isAfter(DateTime.now().add(const Duration(days: 1)))) {
+        return null;
+      }
+      return dt;
+    } catch (_) {
+      return null;
+    }
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────

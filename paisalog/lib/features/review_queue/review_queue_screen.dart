@@ -123,19 +123,18 @@ class _ReviewCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () =>
-                          context.push('/transactions/${tx.id}/edit'),
-                      icon: const Icon(Icons.edit_outlined, size: 16),
-                      label: const Text('Correct'),
+                      onPressed: () => _showQuickResolveSheet(context),
+                      icon: const Icon(Icons.check_circle_outline, size: 16),
+                      label: const Text('Resolve'),
                     ),
                   ),
                   const SizedBox(width: PaisaSpacing.sm),
                   Expanded(
                     child: FilledButton.icon(
                       onPressed: () =>
-                          context.push('/transactions/${tx.id}'),
-                      icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                      label: const Text('Details'),
+                          context.push('/transactions/${tx.id}/edit'),
+                      icon: const Icon(Icons.edit_outlined, size: 16),
+                      label: const Text('Edit'),
                     ),
                   ),
                 ],
@@ -145,6 +144,101 @@ class _ReviewCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _showQuickResolveSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Consumer(
+        builder: (ctx, ref, _) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(PaisaSpacing.md),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Resolve Transaction',
+                  style: PaisaTextStyles.headingSmall,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: PaisaSpacing.xs),
+                Text(
+                  'Classify this transaction to update your ledger',
+                  style: PaisaTextStyles.bodySmall.copyWith(
+                    color: PaisaColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: PaisaSpacing.md),
+                ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Color(0x22EF4444),
+                    child: Icon(Icons.arrow_upward_rounded, color: PaisaColors.expense),
+                  ),
+                  title: const Text('Expense'),
+                  subtitle: const Text('Outgoing payment / purchase'),
+                  onTap: () async {
+                    Navigator.of(ctx).pop();
+                    await _resolveAs(ref, TransactionType.expense, TransactionDirection.debit);
+                  },
+                ),
+                ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Color(0x2222C55E),
+                    child: Icon(Icons.arrow_downward_rounded, color: PaisaColors.income),
+                  ),
+                  title: const Text('Income'),
+                  subtitle: const Text('Salary, refund or deposit'),
+                  onTap: () async {
+                    Navigator.of(ctx).pop();
+                    await _resolveAs(ref, TransactionType.income, TransactionDirection.credit);
+                  },
+                ),
+                ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Color(0x2294A3B8),
+                    child: Icon(Icons.swap_horiz_rounded, color: PaisaColors.transfer),
+                  ),
+                  title: const Text('Transfer'),
+                  subtitle: const Text('Credit card bill or self account transfer'),
+                  onTap: () async {
+                    Navigator.of(ctx).pop();
+                    await _resolveAs(ref, TransactionType.transfer, TransactionDirection.debit);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _resolveAs(
+    WidgetRef ref,
+    TransactionType type,
+    TransactionDirection direction,
+  ) async {
+    final repo = ref.read(transactionRepositoryProvider);
+    final input = TransactionInput(
+      amountPaise: transaction.amountPaise,
+      type: type,
+      direction: direction,
+      merchantOrCounterparty: transaction.merchantOrCounterparty,
+      occurredAt: transaction.occurredAt,
+      categoryId: transaction.categoryId,
+      accountHint: transaction.accountHint,
+      referenceId: transaction.referenceId,
+      source: transaction.source,
+      confidence: ParseConfidence.high,
+      reviewStatus: ReviewStatus.corrected,
+      parserRuleId: transaction.parserRuleId,
+    );
+    await repo.updateTransaction(transaction.id, input);
   }
 
   String _formatDate(DateTime d) {
