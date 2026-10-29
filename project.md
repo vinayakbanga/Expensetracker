@@ -199,7 +199,8 @@ d:\Expense tracker\paisalog\
    - [x] Flutter SDK 3.47.8 & Dart 3.13.7 configured at `D:\flutter\bin`.
    - [x] Package resolution complete (`flutter pub get` — 146 dependencies).
    - [x] Drift and Riverpod code generation complete (`build_runner` — 119 outputs).
-   - [x] Git repository initialized and clean.
+   - [x] Git repository initialized and pushed to GitHub (`vinayakbanga/Expensetracker`).
+   - [x] Codemagic cloud macOS CI pipeline configured (`codemagic.yaml` with M2 Mac, Flutter stable, build & test).
 
 2. **Domain & Business Logic**
    - [x] `Money` object with integer paise arithmetic and display formatting.

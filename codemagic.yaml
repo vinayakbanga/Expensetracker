@@ -1,0 +1,44 @@
+# Codemagic CI/CD configuration for PaisaLog (iOS)
+# Reference: https://docs.codemagic.io/yaml-quick-start/building-a-flutter-app/
+
+workflows:
+  ios-workflow:
+    name: PaisaLog iOS Build & Test
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    working_directory: paisalog
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Get Flutter dependencies
+        script: |
+          flutter packages pub get
+      - name: Generate Drift & Riverpod code
+        script: |
+          dart run build_runner build --delete-conflicting-outputs
+      - name: Run unit & widget test suite
+        script: |
+          flutter test
+      - name: Build iOS Application (Unsigned Release)
+        script: |
+          flutter build ios --release --no-codesign
+      - name: Package unsigned IPA artifact
+        script: |
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          cp -r Runner.app Payload/
+          zip -r paisalog-unsigned.ipa Payload
+    artifacts:
+      - paisalog/build/ios/iphoneos/*.ipa
+      - paisalog/build/ios/iphoneos/*.app
+      - build/ios/iphoneos/*.ipa
+      - build/ios/iphoneos/*.app
+    publishing:
+      email:
+        recipients:
+          - vinayakbanga22@gmail.com
+        notify:
+          success: true
+          failure: true
